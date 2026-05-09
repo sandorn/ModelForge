@@ -10,4 +10,5 @@ Professional Office productivity plugins for Excel, PowerPoint and Word.
 
 ## License
 
-MIT License
+© 2026 ModelForge Team. 保留所有权利。 All Rights Reserved.
+See [LICENSE](LICENSE) for details.
