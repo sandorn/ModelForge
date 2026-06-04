@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+           xsi:type="TaskPaneApp">
+  <Id>f7204470-1842-4c89-a6e5-2b9df3d1a5a1</Id>
+  <Version>0.1.0.0</Version>
+  <ProviderName>ModelForge Team</ProviderName>
+  <DefaultLocale>zh-CN</DefaultLocale>
+  <DisplayName DefaultValue="ModelForge" />
+  <Description DefaultValue="ModelForge Office 生产力插件 — Excel 财务建模与数据联动。" />
+  <IconUrl DefaultValue="http://localhost:5173/assets/icon-32.png" />
+  <HighResolutionIconUrl DefaultValue="http://localhost:5173/assets/icon-64.png" />
+  <SupportUrl DefaultValue="https://modelforge.dev" />
+  <AppDomains>
+    <AppDomain>https://localhost:5173</AppDomain>
+    <AppDomain>http://localhost:5173</AppDomain>
+    <AppDomain>http://localhost:5200</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Workbook" />
+    <Host Name="Presentation" />
+    <Host Name="Document" />
+  </Hosts>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="http://localhost:5173" />
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Workbook">
+        <DesktopFormFactor>
+          <GetStarted>
+            <Title resid="GetStarted.Title" />
+            <Description resid="GetStarted.Description" />
+            <LearnMoreUrl resid="GetStarted.LearnMoreUrl" />
+          </GetStarted>
+
+          <FunctionFile resid="FunctionFile.Url" />
+
+          <!-- ModelForge Tab on Ribbon -->
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <CustomTab id="ModelForge.Tab">
+              <Group id="ModelForge.Tab.Group.Label">
+                <Label resid="TabLabel" />
+
+                <!-- Bridge Group -->
+                <Group id="ModelForge.BridgeGroup">
+                  <Label resid="BridgeGroup.Label" />
+                  <Icon>
+                    <bt:Image size="16" resid="Icon.16x16" />
+                    <bt:Image size="32" resid="Icon.32x32" />
+                    <bt:Image size="80" resid="Icon.80x80" />
+                  </Icon>
+                  <Control xsi:type="Button" id="ModelForge.OpenTaskPane">
+                    <Label resid="TaskPaneButton.Label" />
+                    <Supertip><Title resid="TaskPaneButton.Label" /><Description resid="TaskPaneButton.Tooltip" /></Supertip>
+                    <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
+                    <Action xsi:type="ShowTaskpane"><TaskpaneId>ModelForge.TaskPane</TaskpaneId><SourceLocation resid="TaskPane.Url" /></Action>
+                  </Control>
+                </Group>
+
+                <!-- Power Tools Group -->
+                <Group id="ModelForge.PowerToolsGroup">
+                  <Label resid="PowerToolsGroup.Label" />
+                  <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
+                  <Control xsi:type="Button" id="excel.fill-right"><Label resid="FillRight.Label" /><Supertip><Title resid="FillRight.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.fill-down"><Label resid="FillDown.Label" /><Supertip><Title resid="FillDown.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.wrap-iferror"><Label resid="WrapIfError.Label" /><Supertip><Title resid="WrapIfError.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.insert-statistics"><Label resid="InsertStats.Label" /><Supertip><Title resid="InsertStats.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.apply-finance-format"><Label resid="FinanceFormat.Label" /><Supertip><Title resid="FinanceFormat.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.toggle-sign"><Label resid="ToggleSign.Label" /><Supertip><Title resid="ToggleSign.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.insert-dcf-template"><Label resid="DcfTemplate.Label" /><Supertip><Title resid="DcfTemplate.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                </Group>
+
+                <!-- Audit Group -->
+                <Group id="ModelForge.AuditGroup">
+                  <Label resid="AuditGroup.Label" />
+                  <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
+                  <Control xsi:type="Button" id="excel.visualize-inputs"><Label resid="VisualizeInputs.Label" /><Supertip><Title resid="VisualizeInputs.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.visualize-formulas"><Label resid="VisualizeFormulas.Label" /><Supertip><Title resid="VisualizeFormulas.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.visualize-links"><Label resid="VisualizeLinks.Label" /><Supertip><Title resid="VisualizeLinks.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.clear-visualizations"><Label resid="ClearViz.Label" /><Supertip><Title resid="ClearViz.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.model-check"><Label resid="ModelCheck.Label" /><Supertip><Title resid="ModelCheck.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.trace-precedents"><Label resid="TracePrecedents.Label" /><Supertip><Title resid="TracePrecedents.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.trace-dependents"><Label resid="TraceDependents.Label" /><Supertip><Title resid="TraceDependents.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.clear-trace"><Label resid="ClearTrace.Label" /><Supertip><Title resid="ClearTrace.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                </Group>
+
+                <!-- Linking Group -->
+                <Group id="ModelForge.LinkingGroup">
+                  <Label resid="LinkingGroup.Label" />
+                  <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
+                  <Control xsi:type="Button" id="excel.link-to-powerpoint"><Label resid="LinkToPPT.Label" /><Supertip><Title resid="LinkToPPT.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.refresh-links"><Label resid="RefreshLinks.Label" /><Supertip><Title resid="RefreshLinks.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                </Group>
+
+                <!-- Workbook Group -->
+                <Group id="ModelForge.WorkbookGroup">
+                  <Label resid="WorkbookGroup.Label" />
+                  <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
+                  <Control xsi:type="Button" id="excel.optimize-workbook"><Label resid="Optimize.Label" /><Supertip><Title resid="Optimize.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.prepare-to-share"><Label resid="PrepareToShare.Label" /><Supertip><Title resid="PrepareToShare.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                </Group>
+
+              </Group>
+              <Label resid="TabLabel" />
+            </CustomTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+
+    <Resources>
+      <bt:Images>
+        <bt:Image id="Icon.16x16" DefaultValue="http://localhost:5173/assets/icon-16.png" />
+        <bt:Image id="Icon.32x32" DefaultValue="http://localhost:5173/assets/icon-32.png" />
+        <bt:Image id="Icon.80x80" DefaultValue="http://localhost:5173/assets/icon-80.png" />
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="TaskPane.Url" DefaultValue="http://localhost:5173" />
+        <bt:Url id="FunctionFile.Url" DefaultValue="http://localhost:5173/function-file.html" />
+        <bt:Url id="GetStarted.LearnMoreUrl" DefaultValue="https://modelforge.dev" />
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="TabLabel" DefaultValue="ModelForge" />
+        <bt:String id="BridgeGroup.Label" DefaultValue="桥接" />
+        <bt:String id="PowerToolsGroup.Label" DefaultValue="Power Tools" />
+        <bt:String id="AuditGroup.Label" DefaultValue="模型审计" />
+        <bt:String id="LinkingGroup.Label" DefaultValue="跨应用联动" />
+        <bt:String id="WorkbookGroup.Label" DefaultValue="工作簿工具" />
+        <bt:String id="TaskPaneButton.Label" DefaultValue="打开任务窗格" />
+        <bt:String id="FillRight.Label" DefaultValue="向右填充" />
+        <bt:String id="FillDown.Label" DefaultValue="向下填充" />
+        <bt:String id="WrapIfError.Label" DefaultValue="IFERROR" />
+        <bt:String id="InsertStats.Label" DefaultValue="统计摘要" />
+        <bt:String id="FinanceFormat.Label" DefaultValue="财务格式" />
+        <bt:String id="ToggleSign.Label" DefaultValue="正负号切换" />
+        <bt:String id="DcfTemplate.Label" DefaultValue="DCF 模板" />
+        <bt:String id="VisualizeInputs.Label" DefaultValue="标记输入" />
+        <bt:String id="VisualizeFormulas.Label" DefaultValue="标记公式" />
+        <bt:String id="VisualizeLinks.Label" DefaultValue="标记外链" />
+        <bt:String id="ClearViz.Label" DefaultValue="清除标色" />
+        <bt:String id="ModelCheck.Label" DefaultValue="Model Check" />
+        <bt:String id="TracePrecedents.Label" DefaultValue="追踪前驱" />
+        <bt:String id="TraceDependents.Label" DefaultValue="追踪依赖" />
+        <bt:String id="ClearTrace.Label" DefaultValue="清除追踪" />
+        <bt:String id="LinkToPPT.Label" DefaultValue="链接至 PPT" />
+        <bt:String id="RefreshLinks.Label" DefaultValue="刷新链接" />
+        <bt:String id="Optimize.Label" DefaultValue="优化工作簿" />
+        <bt:String id="PrepareToShare.Label" DefaultValue="安全外发" />
+        <bt:String id="GetStarted.Title" DefaultValue="ModelForge 已加载" />
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="TaskPaneButton.Tooltip" DefaultValue="打开 ModelForge 任务窗格" />
+        <bt:String id="GetStarted.Description" DefaultValue="ModelForge 已就绪 — 使用 Ribbon 按钮执行建模操作。" />
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

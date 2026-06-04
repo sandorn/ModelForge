@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{7A9B1E32-1D8C-4D24-9AF0-7D15D4A6F3E2}</ProjectGuid>
+    <ProjectTypeGuids>{BAA0C2D2-18E2-41B9-852F-F413020CAA33};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ModelForge.Excel</RootNamespace>
+    <AssemblyName>ModelForge.Excel</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <TargetFrameworkProfile />
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+    <SignManifests>false</SignManifests>
+    <OfficeApplication>Excel</OfficeApplication>
+    <VSTO_ProjectType>Application</VSTO_ProjectType>
+    <TargetOfficeVersion>v15.0</TargetOfficeVersion>
+    <FriendlyName>ModelForge Excel</FriendlyName>
+    <LoadBehavior>3</LoadBehavior>
+    <VSTO_TrustAssembliesLocation>true</VSTO_TrustAssembliesLocation>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <ApplicationVersion>0.1.0.0</ApplicationVersion>
+    <ApplicationRevision>0</ApplicationRevision>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE;VSTO40</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE;VSTO40</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Accessibility" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Microsoft.Office.Tools.Common">
+      <HintPath>$(VSINSTALLDIR)\Common7\IDE\ReferenceAssemblies\v4.0\Microsoft.Office.Tools.Common.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.Office.Tools.Common.v4.0.Utilities">
+      <HintPath>$(VSINSTALLDIR)\Common7\IDE\ReferenceAssemblies\v4.0\Microsoft.Office.Tools.Common.v4.0.Utilities.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <Reference Include="Microsoft.Office.Tools">
+      <HintPath>$(VSINSTALLDIR)\Common7\IDE\ReferenceAssemblies\v4.0\Microsoft.Office.Tools.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.VisualStudio.Tools.Applications.Runtime">
+      <HintPath>$(VSINSTALLDIR)\Common7\IDE\ReferenceAssemblies\v4.0\Microsoft.VisualStudio.Tools.Applications.Runtime.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Office">
+      <HintPath>$(VSINSTALLDIR)\Common7\IDE\ReferenceAssemblies\v4.0\Office15\Office.dll</HintPath>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Commands\DefaultShortcutMap.cs" />
+    <Compile Include="Commands\ExcelCommandIds.cs" />
+    <Compile Include="Commands\OfficeCommandHost.cs" />
+    <Compile Include="Commands\ShortcutDefinition.cs" />
+    <Compile Include="Commands\ShortcutRegistry.cs" />
+    <Compile Include="Configuration\BridgeOptions.cs" />
+    <Compile Include="Infrastructure\ComObjectScope.cs" />
+    <Compile Include="Infrastructure\OfficeVersionInfo.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Ribbon\ModelForgeRibbon.cs" />
+    <Compile Include="Ribbon\ModelForgeRibbonCallbacks.cs" />
+    <Compile Include="Ribbon\RibbonControlTagReader.cs" />
+    <Compile Include="Services\BackendBridgeClient.cs" />
+    <Compile Include="ThisAddIn.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="ThisAddIn.Designer.cs">
+      <DependentUpon>ThisAddIn.cs</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Ribbon\ModelForgeRibbon.xml" />
+    <None Include="app.config" />
+    <None Include="README.md" />
+  </ItemGroup>
+  <PropertyGroup>
+    <!-- 优先使用当前 VS 版本；如果需要可改回 18.0 -->
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">18.6.2</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+  </PropertyGroup>
+  <Import Project="ModelForge.Excel.LocalSigning.props" Condition="Exists('ModelForge.Excel.LocalSigning.props')" />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(VSToolsPath)\OfficeTools\Microsoft.VisualStudio.Tools.Office.targets" Condition="Exists('$(VSToolsPath)\OfficeTools\Microsoft.VisualStudio.Tools.Office.targets')" />
+</Project>

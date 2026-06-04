@@ -1,0 +1,107 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+
+  <?define ProductName="ModelForge" ?>
+  <?define Manufacturer="ModelForge Team" ?>
+  <?define UpgradeCode="8F3A7C2E-1B4D-4E6A-9F5C-7D2E8A1B3C6F" ?>
+  <?define SidecarServiceName="ModelForge.Sidecar" ?>
+
+  <Package Name="$(var.ProductName)"
+           Manufacturer="$(var.Manufacturer)"
+           Version="0.1.0.0"
+           UpgradeCode="$(var.UpgradeCode)"
+           Scope="perMachine"
+           Language="2052">
+
+    <MajorUpgrade DowngradeErrorMessage="检测到更新版本的 ModelForge，请先卸载旧版本。" />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Feature: Sidecar Windows Service -->
+    <Feature Id="SidecarFeature" Title="ModelForge Sidecar" Level="1" Absent="disallow"
+             Description=".NET 10 Sidecar Worker Service — COM 互操作与键盘钩子引擎">
+      <ComponentGroupRef Id="SidecarComponents" />
+    </Feature>
+
+    <!-- Feature: Web Add-in -->
+    <Feature Id="WebAddinFeature" Title="ModelForge Web Add-in" Level="1"
+             Description="Office Web Add-in 静态文件 (manifest + 前端资源)">
+      <ComponentGroupRef Id="WebComponents" />
+    </Feature>
+
+    <!-- Feature: Backend API -->
+    <Feature Id="BackendFeature" Title="ModelForge Backend" Level="1"
+             Description="ASP.NET Core 10 后端桥接服务">
+      <ComponentGroupRef Id="BackendComponents" />
+    </Feature>
+  </Package>
+
+  <!-- Sidecar Components — installed as Windows Service -->
+  <Fragment>
+    <ComponentGroup Id="SidecarComponents" Directory="SidecarDir">
+      <Component Id="SidecarExe" Guid="A1B2C3D4-0001-4E00-8000-000000000001">
+        <File Id="SidecarExeFile" Name="ModelForge.Sidecar.exe" Source="publish\Sidecar\ModelForge.Sidecar.exe"
+              KeyPath="yes" />
+        <ServiceInstall Id="SidecarSvcInstall"
+                        Name="$(var.SidecarServiceName)"
+                        DisplayName="ModelForge Sidecar Service"
+                        Description="ModelForge Office COM 互操作与键盘钩子服务"
+                        Type="ownProcess"
+                        Start="auto"
+                        ErrorControl="normal" />
+        <ServiceControl Id="SidecarSvcControl"
+                        Name="$(var.SidecarServiceName)"
+                        Start="install"
+                        Stop="both"
+                        Remove="uninstall" />
+      </Component>
+      <Component Id="SidecarDeps" Guid="A1B2C3D4-0002-4E00-8000-000000000002">
+        <File Id="SidecarDll1" Name="ModelForge.Contracts.dll" Source="publish\Sidecar\ModelForge.Contracts.dll" />
+        <File Id="SidecarDll2" Name="ModelForge.Sidecar.dll" Source="publish\Sidecar\ModelForge.Sidecar.dll" />
+        <File Id="SidecarJson" Name="appsettings.json" Source="publish\Sidecar\appsettings.json" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- Web Add-in Components — copy to Program Files -->
+  <Fragment>
+    <ComponentGroup Id="WebComponents" Directory="WebDir">
+      <Component Id="WebFiles" Guid="B1C2D3E4-0001-4E00-8000-000000000001">
+        <File Id="IndexHtml" Name="index.html" Source="publish\Web\index.html" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- Backend Components — installed as Windows Service -->
+  <Fragment>
+    <ComponentGroup Id="BackendComponents" Directory="BackendDir">
+      <Component Id="BackendExe" Guid="C1D2E3F4-0001-4E00-8000-000000000001">
+        <File Id="BackendExeFile" Name="ModelForge.Backend.exe" Source="publish\Backend\ModelForge.Backend.exe"
+              KeyPath="yes" />
+        <ServiceInstall Id="BackendSvcInstall"
+                        Name="ModelForge.Backend"
+                        DisplayName="ModelForge Backend API"
+                        Description="ModelForge ASP.NET Core 后端桥接服务"
+                        Type="ownProcess"
+                        Start="auto"
+                        ErrorControl="normal" />
+        <ServiceControl Id="BackendSvcControl"
+                        Name="ModelForge.Backend"
+                        Start="install"
+                        Stop="both"
+                        Remove="uninstall" />
+      </Component>
+    </ComponentGroup>
+  </Fragment>
+
+  <!-- Directory Structure -->
+  <Fragment>
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="ModelForgeDir" Name="ModelForge">
+        <Directory Id="SidecarDir" Name="Sidecar" />
+        <Directory Id="WebDir" Name="Web" />
+        <Directory Id="BackendDir" Name="Backend" />
+      </Directory>
+    </StandardDirectory>
+  </Fragment>
+</Wix>

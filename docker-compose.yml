@@ -1,0 +1,60 @@
+# ModelForge 私有化部署编排
+# 用法: docker compose up -d
+
+services:
+  # ── PostgreSQL 数据库 ──
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: modelforge
+      POSTGRES_USER: modelforge
+      POSTGRES_PASSWORD: ${MODELFORGE_DB_PASSWORD:-modelforge-dev}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U modelforge"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend API ──
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Backend.Dockerfile
+    restart: unless-stopped
+    environment:
+      MODELFORGE_DB_CONNECTION: Host=postgres;Database=modelforge;Username=modelforge;Password=${MODELFORGE_DB_PASSWORD:-modelforge-dev}
+      Jwt__SecretKey: ${MODELFORGE_JWT_SECRET:-ModelForge-Production-Secret-ChangeMe-Min32Chars!!}
+    ports:
+      - "5095:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Ollama (私有大模型) ──
+  ollama:
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    volumes:
+      - ollama_data:/root/.ollama
+    ports:
+      - "11434:11434"
+    # 启动后拉取默认模型:
+    # docker exec ollama ollama pull llama3.2:3b
+
+  # ── Web Add-in 静态文件 (Nginx) ──
+  web:
+    build:
+      context: .
+      dockerfile: docker/Web.Dockerfile
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+
+volumes:
+  pgdata:
+  ollama_data:

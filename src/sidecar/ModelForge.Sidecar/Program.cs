@@ -1,0 +1,61 @@
+using ModelForge.Sidecar.Api;
+using ModelForge.Sidecar.Commands;
+using ModelForge.Sidecar.Configuration;
+using ModelForge.Sidecar.Interop;
+using ModelForge.Sidecar.Keyboard;
+using ModelForge.Sidecar.Services;
+
+var builder = WebApplication.CreateSlimBuilder(args);
+
+// Bind configuration
+var sidecarOptions = builder.Configuration.GetSection("Sidecar").Get<SidecarOptions>()
+                     ?? new SidecarOptions();
+
+builder.Services.AddSingleton(sidecarOptions);
+builder.Services.AddSingleton<ShortcutRegistry>();
+
+// NetOffice COM Interop 层
+builder.Services.AddSingleton<OfficeApplicationFactory>();
+builder.Services.AddSingleton<ExcelInteropService>();
+builder.Services.AddSingleton<PowerPointInteropService>();
+builder.Services.AddSingleton<WordInteropService>();
+
+// Backend bridge HTTP client
+builder.Services.AddHttpClient<BackendBridgeClient>(client =>
+{
+    client.BaseAddress = new Uri(sidecarOptions.BackendBaseUrl);
+    client.Timeout = TimeSpan.FromSeconds(sidecarOptions.TimeoutSeconds);
+    client.DefaultRequestHeaders.Add("X-Client-Id", "ModelForge.Sidecar");
+});
+
+// Win32 global keyboard hook (conditional)
+if (sidecarOptions.KeyboardHookEnabled)
+{
+    builder.Services.AddSingleton<ChordParser>();
+    builder.Services.AddSingleton<KeyboardCommandRouter>();
+    builder.Services.AddHostedService<GlobalKeyboardHook>();
+}
+
+// CORS for local Web Add-in dev server
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("SidecarLocal", policy =>
+    {
+        policy
+            .WithOrigins("https://localhost:5173", "http://localhost:5173",
+                         "https://localhost:3000", "http://localhost:3000")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+var app = builder.Build();
+
+app.UseCors("SidecarLocal");
+
+// Map Sidecar localhost REST endpoints (port 5200)
+app.MapSidecarEndpoints();
+
+app.Urls.Add($"http://localhost:{sidecarOptions.SidecarPort}");
+
+app.Run();

@@ -7,10 +7,12 @@
 *.dll
 *.pdb
 *.tlb
+*.pfx
 bin/
 obj/
 packages/
 PublishProfiles/
+src/vsto/ModelForge.Excel/*.LocalSigning.props
 
 # Visual Studio User Options
 *.user
@@ -20,8 +22,9 @@ PublishProfiles/
 *.suo.config
 
 # Office Add-in
+!manifest/
+!manifest/*.xml
 *.xml.manifest
-*.xml
 AppManifest.xml
 manifest.xml
 

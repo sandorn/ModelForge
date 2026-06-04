@@ -1,0 +1,13 @@
+<Project Sdk="WixToolset.Sdk/5.0.0">
+
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputName>ModelForge-0.1.0</OutputName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WixToolset.UI.wixext" Version="5.0.0" />
+  </ItemGroup>
+
+</Project>
