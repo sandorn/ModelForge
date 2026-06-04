@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using ModelForge.Sidecar.Commands;
 
@@ -7,7 +6,6 @@ namespace ModelForge.Sidecar.Keyboard;
 /// <summary>
 /// 全局低级键盘钩子 (WH_KEYBOARD_LL)。
 /// 作为 IHostedService 运行，在独立线程上监听系统键盘事件。
-/// Phase B 完整实现：当前 Phase A 提供可运行的钩子骨架和日志输出。
 /// </summary>
 public sealed class GlobalKeyboardHook : IHostedService, IDisposable
 {

@@ -16,18 +16,18 @@ ModelForge 采用 **Hybrid Sidecar** 架构：
 
 | 层级 | 技术选型 | 说明 |
 | ---- | -------- | ---- |
-| Sidecar | .NET 9 Worker Service + NetOffice (MIT) | 全局键盘钩子、COM 深度操作、Power Tools、Model Check |
+| Sidecar | .NET 10 REST + 原生 COM Interop | 全局键盘钩子、COM 深度操作、Power Tools、Model Check |
 | Web Add-in | Office.js + React + TypeScript | Ribbon UI、任务窗格、Admin Console、AIWA 前端 |
-| 后端桥接 | ASP.NET Core 9 | 认证、配置、审计、链接元数据、命令桥接、字典管理 |
+| 后端桥接 | ASP.NET Core 10 | 认证、配置、审计、链接元数据、命令桥接、字典管理 |
 | 数据库 | PostgreSQL / SQL Server | 存储配置、字典、审计、遥测和链接元数据 |
 
-> Sidecar 与 Web Add-in 通过 localhost REST (:5200) 通信；Sidecar 与后端通过 HTTP (:5095) 通信；所有通信经后端桥接，禁止直接进程通信。
+> Web Add-in ↔ Sidecar 通过 localhost REST (:5200)；Sidecar ↔ Backend 通过 HTTP (:5095)；Web Add-in ↔ Backend 通过 HTTP (:5095)。禁止 Sidecar 与 Web Add-in 之间的直接进程通信（如命名管道）。
 
 ## MVP 方向
 
 当前 Phase A 交付：
 
-1. Sidecar Worker Service 基础框架 + NetOffice COM 互操作层。
+1. Sidecar 基础框架 + 原生 COM 互操作层。
 2. 20 个高频快捷键（Win32 全局钩子 + Office.js 双轨）。
 3. Office Web Add-in Ribbon 与任务窗格。
 4. Power Tools 基础版：快速填充、IFERROR 封装、统计公式插入。
@@ -45,6 +45,7 @@ ModelForge 采用 **Hybrid Sidecar** 架构：
 | [docs/功能规划.md](docs/功能规划.md) | 产品定位、用户画像、MVP 范围、功能模块与非功能需求 |
 | [docs/实现路径规划.md](docs/实现路径规划.md) | 阶段计划、里程碑、门禁、测试、发布与行动清单 |
 | [docs/开发环境搭建.md](docs/开发环境搭建.md) | Sidecar + Web + Backend 搭建与运行 |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) | 版本变更与架构迁移记录 |
 | [docs/API契约.md](docs/API契约.md) | API 接口契约、DTO 定义 |
 | [docs/版权信息.md](docs/版权信息.md) | 版权、商标、专利、安全漏洞报告和投诉通道 |
 | [LICENSE](LICENSE) | 专有软件许可证 |

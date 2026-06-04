@@ -1,5 +1,3 @@
-using System.Diagnostics;
-
 namespace ModelForge.Sidecar.PowerPoint;
 
 /// <summary>

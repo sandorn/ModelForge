@@ -22,7 +22,12 @@ public static class LinkRefresher
 
         try
         {
-            dynamic pptApp = Interop.ComRuntime.GetActiveObject(Interop.ComRuntime.CLSID.PowerPoint);
+            dynamic? pptApp = Interop.ComRuntime.GetActiveObject(Interop.ComRuntime.CLSID.PowerPoint);
+            if (pptApp == null)
+            {
+                result.BrokenDetails.Add("无法连接到 PowerPoint。请确认 PowerPoint 已运行。");
+                return result;
+            }
             dynamic presentation = pptApp.ActivePresentation;
             if (presentation == null)
             {

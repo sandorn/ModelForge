@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 
 namespace ModelForge.Sidecar.Interop;
 
@@ -10,6 +10,12 @@ namespace ModelForge.Sidecar.Interop;
 public sealed class OfficeApplicationFactory : IDisposable
 {
     private readonly List<object> _comObjects = new();
+    private readonly ILogger<OfficeApplicationFactory> _logger;
+
+    public OfficeApplicationFactory(ILogger<OfficeApplicationFactory> logger)
+    {
+        _logger = logger;
+    }
 
     public dynamic? GetExcel() => GetRunningComObject(ComRuntime.CLSID.Excel, "Excel");
     public dynamic? GetPowerPoint() => GetRunningComObject(ComRuntime.CLSID.PowerPoint, "PowerPoint");
@@ -25,23 +31,24 @@ public sealed class OfficeApplicationFactory : IDisposable
                 Track(obj);
                 return obj;
             }
-            Trace.TraceWarning($"{appName} 未运行");
+            _logger.LogWarning("{AppName} 未运行", appName);
             return null;
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning($"无法连接到 {appName}: {ex.Message}");
+            _logger.LogWarning(ex, "无法连接到 {AppName}", appName);
             return null;
         }
     }
 
-    public T Track<T>(T comObject) where T : class
+    public T? Track<T>(T? comObject) where T : class
     {
         if (comObject != null && Marshal.IsComObject(comObject))
             _comObjects.Add(comObject);
         return comObject;
     }
 
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
     public void Dispose()
     {
         for (int i = _comObjects.Count - 1; i >= 0; i--)

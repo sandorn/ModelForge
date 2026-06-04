@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace ModelForge.Sidecar.Interop;
 
@@ -8,11 +8,13 @@ namespace ModelForge.Sidecar.Interop;
 public sealed class WordInteropService : IDisposable
 {
     private readonly OfficeApplicationFactory _factory;
+    private readonly ILogger<WordInteropService> _logger;
     private dynamic? _wordApp;
 
-    public WordInteropService(OfficeApplicationFactory factory)
+    public WordInteropService(OfficeApplicationFactory factory, ILogger<WordInteropService> logger)
     {
         _factory = factory;
+        _logger = logger;
     }
 
     public dynamic? GetApplication() => _wordApp ??= _factory.GetWord();
@@ -25,7 +27,7 @@ public sealed class WordInteropService : IDisposable
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning($"获取活动文档失败: {ex.Message}");
+            _logger.LogWarning(ex, "获取活动文档失败");
             return null;
         }
     }

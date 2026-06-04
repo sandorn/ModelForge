@@ -4,12 +4,13 @@ namespace ModelForge.Sidecar.Visualizations;
 
 /// <summary>
 /// 审计标色器。根据 CellClassifier 的分类结果对单元格应用颜色标记。
-/// 硬编码=蓝色, 公式=黑色(不变), 外部链接=绿色。
+/// 硬编码=蓝色, 公式=浅灰, 外部链接=绿色。
 /// </summary>
 public static class AuditColorMarker
 {
     // ModelForge 审计色板
     private const int HardcodedColor = 0x0078D4;   // 蓝色 RGB(0,120,212)
+    private const int FormulaColor = 0xF0F0F0;      // 浅灰 RGB(240,240,240)
     private const int ExternalLinkColor = 0x107C10; // 绿色 RGB(16,124,16)
 
     /// <summary>
@@ -19,6 +20,10 @@ public static class AuditColorMarker
     {
         var hardcodedAddrs = classifications
             .Where(kv => kv.Value == CellClassifier.CellType.Hardcoded)
+            .Select(kv => kv.Key).ToList();
+
+        var formulaAddrs = classifications
+            .Where(kv => kv.Value == CellClassifier.CellType.Formula)
             .Select(kv => kv.Key).ToList();
 
         var externalAddrs = classifications
@@ -31,6 +36,13 @@ public static class AuditColorMarker
             dynamic range = worksheet.Range[string.Join(",", hardcodedAddrs)];
             range.Interior.Color = HardcodedColor;
             range.Font.Color = 0xFFFFFF; // 白色字体
+        }
+
+        if (formulaAddrs.Count > 0)
+        {
+            dynamic range = worksheet.Range[string.Join(",", formulaAddrs)];
+            range.Interior.Color = FormulaColor;
+            range.Font.Color = 0x000000; // 黑色字体（浅灰背景可读）
         }
 
         if (externalAddrs.Count > 0)

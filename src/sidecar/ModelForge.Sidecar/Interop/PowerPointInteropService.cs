@@ -1,4 +1,4 @@
-using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 
 namespace ModelForge.Sidecar.Interop;
 
@@ -8,11 +8,13 @@ namespace ModelForge.Sidecar.Interop;
 public sealed class PowerPointInteropService : IDisposable
 {
     private readonly OfficeApplicationFactory _factory;
+    private readonly ILogger<PowerPointInteropService> _logger;
     private dynamic? _pptApp;
 
-    public PowerPointInteropService(OfficeApplicationFactory factory)
+    public PowerPointInteropService(OfficeApplicationFactory factory, ILogger<PowerPointInteropService> logger)
     {
         _factory = factory;
+        _logger = logger;
     }
 
     public dynamic? GetApplication() => _pptApp ??= _factory.GetPowerPoint();
@@ -25,7 +27,7 @@ public sealed class PowerPointInteropService : IDisposable
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning($"获取活动演示文稿失败: {ex.Message}");
+            _logger.LogWarning(ex, "获取活动演示文稿失败");
             return null;
         }
     }

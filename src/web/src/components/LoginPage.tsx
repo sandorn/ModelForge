@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button, Input, Text, Title3, Card, CardHeader } from '@fluentui/react-components';
+import { apiClient } from '../services/apiClient';
 
 interface LoginPageProps {
   onLogin: (token: string, user: { userId: string; username: string; role: string }) => void;
@@ -25,7 +26,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
     setError('');
 
     try {
-      const res = await fetch('http://localhost:5095/api/auth/login', {
+      const res = await fetch(`${apiClient.getBackendBaseUrl()}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: username.trim(), password }),
@@ -83,7 +84,7 @@ export function LoginPage({ onLogin }: LoginPageProps) {
             {loading ? '登录中...' : '登录'}
           </Button>
           <Text size={100} style={{ color: '#888' }}>
-            默认账号: admin / analyst / auditor (密码: 用户名 + 123)
+            ModelForge 专为授权用户提供。请联系管理员获取账号。
           </Text>
         </div>
       </Card>

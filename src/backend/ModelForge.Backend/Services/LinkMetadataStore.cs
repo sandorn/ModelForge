@@ -62,7 +62,7 @@ public sealed class InMemoryLinkMetadataStore : ILinkMetadataStore
         {
             LinkId = request.LinkId,
             Status = CommandStatus.Accepted,
-            Message = "刷新请求已记录。实际 Office 对象刷新将在 VSTO 执行端完成。"
+            Message = "刷新请求已记录。实际 Office 对象刷新将在 Sidecar 执行端完成。"
         });
     }
 }

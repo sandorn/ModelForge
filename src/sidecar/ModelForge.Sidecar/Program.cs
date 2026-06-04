@@ -14,7 +14,7 @@ var sidecarOptions = builder.Configuration.GetSection("Sidecar").Get<SidecarOpti
 builder.Services.AddSingleton(sidecarOptions);
 builder.Services.AddSingleton<ShortcutRegistry>();
 
-// NetOffice COM Interop 层
+// 原生 COM Interop 层 (oleaut32 GetActiveObject + dynamic)
 builder.Services.AddSingleton<OfficeApplicationFactory>();
 builder.Services.AddSingleton<ExcelInteropService>();
 builder.Services.AddSingleton<PowerPointInteropService>();

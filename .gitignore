@@ -1,5 +1,5 @@
 # ==============================================
-# ModelForge - VSTO + Office JS API Project
+# ModelForge - Sidecar + Web Add-in + Backend
 # ==============================================
 
 # VSTO Build Outputs
@@ -60,6 +60,14 @@ yarn-error.log*
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Environment files (may contain secrets)
+.env
+.env.local
+.env.*.local
+
+# Visual Studio user settings
+.vs/
 
 # IDE
 .idea/

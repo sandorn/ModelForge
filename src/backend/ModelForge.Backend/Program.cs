@@ -1,11 +1,13 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.IdentityModel.Tokens;
 using ModelForge.Backend.Auth;
 using ModelForge.Backend.Services;
 using ModelForge.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
+var logger = LoggerFactory.Create(c => c.AddConsole()).CreateLogger("ModelForge.Backend");
 
 // ── JWT Auth Configuration ──
 var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
@@ -16,7 +18,7 @@ builder.Services.AddSingleton<InMemoryUserStore>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.TokenValidationParameters = new JwtService(jwtOptions).GetValidationParameters();
+        options.TokenValidationParameters = new JwtService(jwtOptions, NullLogger<JwtService>.Instance).GetValidationParameters();
     });
 
 builder.Services.AddAuthorization(options =>
@@ -60,27 +62,45 @@ app.Use(async (context, next) =>
     await next();
 });
 
+// Global exception handler
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "未处理异常: {Path}", context.Request.Path);
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        var envelope = ApiEnvelope<object>.Failure("内部服务器错误。", GetTraceId(context));
+        await context.Response.WriteAsJsonAsync(envelope);
+    }
+});
+
 // ── Auth Endpoints ──
 var auth = app.MapGroup("/api/auth");
 
-auth.MapPost("/login", (LoginRequest request, JwtService jwt, InMemoryUserStore store) =>
+auth.MapPost("/login", (HttpContext ctx, LoginRequest request, JwtService jwt, InMemoryUserStore store) =>
 {
     var user = store.ValidateCredentials(request.Username, request.Password);
     if (user == null)
         return Results.Unauthorized();
 
     var token = jwt.IssueToken(user.Id, user.Username, user.Role);
-    return Results.Ok(new LoginResponse
+    var loginResponse = new LoginResponse
     {
         Token = token,
         UserId = user.Id,
         Username = user.Username,
         Role = user.Role,
         ExpiresAt = DateTime.UtcNow.AddHours(jwtOptions.TokenLifetimeHours)
-    });
+    };
+    return Results.Ok(ApiEnvelope<LoginResponse>.Success(loginResponse, GetTraceId(ctx)));
 });
 
-auth.MapGet("/me", (ClaimsPrincipal user, InMemoryUserStore store) =>
+auth.MapGet("/me", (HttpContext ctx, ClaimsPrincipal user, InMemoryUserStore store) =>
 {
     var userId = user.FindFirstValue("sub");
     if (userId == null) return Results.Unauthorized();
@@ -88,13 +108,13 @@ auth.MapGet("/me", (ClaimsPrincipal user, InMemoryUserStore store) =>
     var identity = store.GetById(userId);
     if (identity == null) return Results.NotFound();
 
-    return Results.Ok(new
+    return Results.Ok(ApiEnvelope<object>.Success(new
     {
         identity.Id,
         identity.Username,
         identity.Role,
         identity.IsActive
-    });
+    }, GetTraceId(ctx)));
 }).RequireAuthorization();
 
 // ── Admin Endpoints (RBAC-protected) ──
@@ -111,9 +131,12 @@ admin.MapPost("/users", (LoginRequest req, InMemoryUserStore store) =>
 
 admin.MapPut("/users/{userId}/toggle", (string userId, InMemoryUserStore store) =>
 {
-    if (!store.SetActive(userId, true)) // simplified — toggles via query
+    var user = store.GetById(userId);
+    if (user is null)
         return Results.NotFound();
-    return Results.Ok(new { userId, toggled = true });
+    var newState = !user.IsActive;
+    store.SetActive(userId, newState);
+    return Results.Ok(new { userId, active = newState });
 });
 
 // ── Public Endpoints ──

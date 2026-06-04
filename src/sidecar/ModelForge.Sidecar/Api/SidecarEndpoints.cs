@@ -66,7 +66,7 @@ public static class SidecarEndpoints
                     resultMessage = request.CommandId switch
                     {
                         PptCommandIds.GenerateAgenda => System.Text.Json.JsonSerializer.Serialize(
-                            DynamicAgendas.Generate(ppt)),
+                            DynamicAgendas.Generate(ppt, logger)),
                         PptCommandIds.DeckCheck => System.Text.Json.JsonSerializer.Serialize(
                             DeckCheck.Run(ppt)),
                         PptCommandIds.AlignLeft => ShapeTools.AlignLeft(ppt),
@@ -111,11 +111,11 @@ public static class SidecarEndpoints
 
                     // === Visualizations ===
                     ExcelCommandIds.VisualizeInputs => Visualize(worksheet: excel.ActiveSheet,
-                        selection: excel.Selection, mode: "all"),
+                        selection: excel.Selection, mode: "inputs"),
                     ExcelCommandIds.VisualizeFormulas => Visualize(worksheet: excel.ActiveSheet,
-                        selection: excel.Selection, mode: "all"),
+                        selection: excel.Selection, mode: "formulas"),
                     ExcelCommandIds.VisualizeLinks => Visualize(worksheet: excel.ActiveSheet,
-                        selection: excel.Selection, mode: "all"),
+                        selection: excel.Selection, mode: "links"),
                     ExcelCommandIds.ClearVisualizations => ClearVisualizations(excel.ActiveSheet, excel.Selection),
 
                     // === Model Check ===
@@ -145,14 +145,20 @@ public static class SidecarEndpoints
                 };
                 } // end Excel host else block
 
-                // 同时上报到后端桥接
+                // 异步上报到后端桥接（fire-and-forget，不阻塞 API 响应）
                 var reportHost = request.Host switch
                 {
                     "powerpoint" => OfficeHost.PowerPoint,
                     "word" => OfficeHost.Word,
                     _ => OfficeHost.Excel
                 };
-                _ = bridgeClient.DispatchCommandAsync(request.CommandId, reportHost);
+                _ = bridgeClient.DispatchCommandAsync(request.CommandId, reportHost)
+                    .ContinueWith(t =>
+                    {
+                        if (t.IsFaulted && t.Exception != null)
+                            logger.LogError(t.Exception.InnerException ?? t.Exception,
+                                "后端桥接上报失败: {CommandId}", request.CommandId);
+                    }, TaskContinuationOptions.OnlyOnFaulted);
 
                 return Results.Ok(new { success = true, commandId = request.CommandId, message = resultMessage });
             }
@@ -191,9 +197,17 @@ public static class SidecarEndpoints
 
     private static string Visualize(dynamic worksheet, dynamic selection, string mode)
     {
-        var classifications = CellClassifier.Classify(worksheet, selection);
-        AuditColorMarker.Mark(worksheet, classifications);
-        return $"审计标色完成：标记了 {classifications.Count} 个单元格。";
+        Dictionary<string, CellClassifier.CellType> all = CellClassifier.Classify(worksheet, selection);
+        IEnumerable<KeyValuePair<string, CellClassifier.CellType>> filtered = mode switch
+        {
+            "inputs" => all.Where(kv => kv.Value == CellClassifier.CellType.Hardcoded),
+            "formulas" => all.Where(kv => kv.Value == CellClassifier.CellType.Formula),
+            "links" => all.Where(kv => kv.Value == CellClassifier.CellType.ExternalLink),
+            _ => all
+        };
+        var filteredDict = filtered.ToDictionary(kv => kv.Key, kv => kv.Value);
+        AuditColorMarker.Mark(worksheet, filteredDict);
+        return $"审计标色完成 (模式: {mode})：标记了 {filteredDict.Count} 个单元格。";
     }
 
     private static string ClearVisualizations(dynamic worksheet, dynamic selection)

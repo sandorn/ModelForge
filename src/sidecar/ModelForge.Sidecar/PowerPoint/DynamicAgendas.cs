@@ -1,4 +1,5 @@
-using System.Diagnostics;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ModelForge.Sidecar.PowerPoint;
 
@@ -17,13 +18,14 @@ public static class DynamicAgendas
     /// <summary>
     /// 扫描当前演示文稿的所有 Section，生成目录幻灯片（追加到第 2 张位置）。
     /// </summary>
-    public static AgendaResult Generate(dynamic pptApp)
+    public static AgendaResult Generate(dynamic pptApp, ILogger? logger = null)
     {
+        logger ??= NullLogger.Instance;
         var result = new AgendaResult();
         dynamic presentation = pptApp.ActivePresentation;
         if (presentation == null)
         {
-            Debug.WriteLine("PPT: 无活动演示文稿");
+            logger.LogWarning("PPT: 无活动演示文稿");
             return result;
         }
 
@@ -41,7 +43,7 @@ public static class DynamicAgendas
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"PPT Section 扫描异常: {ex.Message}");
+            logger.LogWarning(ex, "PPT Section 扫描异常");
         }
         result.SectionsFound = sections.Count;
 

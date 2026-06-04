@@ -6,7 +6,7 @@
 | ------------ | ---------------------------------------------- |
 | **项目名称** | ModelForge                                     |
 | **项目类型** | Office 生产力插件套件                          |
-| **技术架构** | Sidecar (.NET 9 + NetOffice) + Office JS API + 后端桥接 (ASP.NET Core 9) |
+| **技术架构** | Sidecar (.NET 10 + 原生 COM) + Office JS API + 后端桥接 (ASP.NET Core 10) |
 | **参考产品** | Macabacus                                      |
 | **目标用户** | 投行、私募、风投、FP&A、管理咨询等财务专业人士 |
 
@@ -16,13 +16,13 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                    Ribbon 功能区 (融合)                           │
 ├─────────────────────────────┬───────────────────────────────────┤
-│  Sidecar (.NET 9 + NetOffice)│        Web Add-in Commands        │
+│  Sidecar (.NET 10 + 原生 COM)│        Web Add-in Commands        │
 │    (COM 深度操作 + 快捷键)     │     (灵活更新无需安装包)           │
 ├─────────────────────────────┴───────────────────────────────────┤
 │                                                                 │
 │  Sidecar 负责：                     Web Add-in 负责：             │
 │  ├── 全局键盘钩子 (Win32)           ├── Admin Console            │
-│  ├── NetOffice COM 互操作            ├── Shared Libraries        │
+│  ├── 原生 COM 互操作                 ├── Shared Libraries        │
 │  ├── 公式追踪 + Model Check         ├── Corporate Dictionary    │
 │  ├── 文件优化 + Prepare to Share    ├── Dashboard 统计          │
 │  ├── Power Tools                    ├── Omnibar 速查栏           │
@@ -36,11 +36,11 @@
 
 ## 硬边界规则
 
-- **Sidecar 职责**：性能敏感功能必须用 Sidecar（全局键盘钩子、NetOffice COM 互操作、跨应用联动、公式解析）
+- **Sidecar 职责**：性能敏感功能必须用 Sidecar（全局键盘钩子、原生 COM 互操作、跨应用联动、公式解析）
 - **Web Add-in 职责**：灵活更新功能用 Web（管理后台、AIWA、配置管理）
 - **通信规范**：Sidecar ↔ Web Add-in 通过 localhost REST (:5200)；Sidecar ↔ Backend 通过 HTTP (:5095)；禁止直接进程通信
 - **文档优先**：新增 API/路由/环境变量必须同步更新 docs/ 相关文档
-- **运行时边界**：Sidecar 使用 .NET 9 Worker Service + NetOffice 2.x（MIT 许可，零 PIA 依赖）；后端服务使用 ASP.NET Core 9
+- **运行时边界**：Sidecar 使用 .NET 10 Web Host + 原生 COM（`GetActiveObject` P/Invoke，零 PIA）；后端服务使用 ASP.NET Core 10（目标框架 `net10.0`）
 - **MVP 顺序**：先完成 Sidecar + Web Add-in 基础设施，再扩展 PPT/Word 支持与 AIWA
 - **历史代码**：`src/vsto/` 目录为历史参考，不参与编译
 
@@ -49,12 +49,12 @@
 ```
 ModelForge/
 ├── src/
-│   ├── sidecar/               # Sidecar Worker Service (.NET 9 + NetOffice)
+│   ├── sidecar/               # Sidecar REST 服务 (.NET 10 + 原生 COM)
 │   │   └── ModelForge.Sidecar/
 │   │       ├── Program.cs      # Host + DI + REST (:5200)
 │   │       ├── Commands/       # 命令 ID + 快捷键注册
 │   │       ├── Configuration/  # BridgeOptions
-│   │       ├── Interop/        # NetOffice COM 互操作
+│   │       ├── Interop/        # 原生 COM 互操作
 │   │       ├── Keyboard/       # Win32 全局键盘钩子
 │   │       ├── PowerTools/     # FillRight, FillDown, IFERROR...
 │   │       ├── Visualizations/ # 三色审计标色
@@ -65,8 +65,8 @@ ModelForge/
 │   │       ├── Services/       # BackendBridgeClient (HTTP)
 │   │       └── Api/            # Sidecar REST 端点
 │   ├── web/                    # Web Add-in (React + TypeScript)
-│   ├── backend/                # 后端 API 桥接 (ASP.NET Core 9)
-│   ├── shared/                 # 共享类型/常量 (.NET 9)
+│   ├── backend/                # 后端 API 桥接 (ASP.NET Core 10)
+│   ├── shared/                 # 共享类型/常量 (.NET 10)
 │   └── vsto/                   # 历史参考（不参与编译）
 ├── manifest/                   # Add-in Manifest 配置
 ├── docs/                       # 项目文档
@@ -82,7 +82,7 @@ ModelForge/
 
 | 模块            | 路径                              | 说明               |
 | --------------- | --------------------------------- | ------------------ |
-| Sidecar         | `src/sidecar/ModelForge.Sidecar/` | .NET 9 Worker Service + NetOffice |
+| Sidecar         | `src/sidecar/ModelForge.Sidecar/` | .NET 10 REST + 原生 COM           |
 | 历史参考        | `src/vsto/ModelForge.Excel/`      | 不参与编译 |
 | Web Add-in      | `src/web/`                        | 管理后台与 AI 功能 |
 | 后端 API        | `src/backend/`                    | 跨插件通信桥接 + 企业服务 |
@@ -93,7 +93,7 @@ ModelForge/
 
 ```powershell
 # 搭建环境
-dotnet --version              # 检查 .NET 9 SDK
+dotnet --version              # 检查 .NET 10 SDK
 node --version               # 检查 Node.js 20 LTS
 # Sidecar 开发需要 Visual Studio 2022/2026（无需 Office 工作负载）+ Microsoft Office 桌面版
 
@@ -139,10 +139,10 @@ cd src/web && npm run build
 
 | 层级          | 技术选型                | 版本 |
 | ------------- | ----------------------- | ---- |
-| Sidecar 运行时 | .NET Worker Service    | 9.0  |
-| COM 互操作    | NetOffice (MIT)        | 2.0+ |
+| Sidecar 运行时 | .NET Web Host (Minimal API) | 10.0 |
+| COM 互操作    | 原生 COM (P/Invoke)    | —    |
 | Office JS API | Office.js               | 1.1+ |
-| 后端框架      | ASP.NET Core            | 9.0+ |
+| 后端框架      | ASP.NET Core            | 10.0+ |
 | 前端框架      | React                   | 18+  |
 | 前端语言      | TypeScript              | 5.0+ |
 | 构建工具      | Vite                    | 6.0+ |
@@ -164,7 +164,7 @@ cd src/web && npm run build
 
 | 阶段                  | 状态      | 周期 | 关键交付                              |
 | --------------------- | --------- | ---- | ------------------------------------- |
-| Phase A：基础设施     | 🔄 进行中  | 2周  | Sidecar + Web + 后端框架 + NetOffice   |
+| Phase A：基础设施     | 🔄 进行中  | 2周  | Sidecar + Web + 后端框架 + COM 互操作  |
 | Phase B：核心功能     | 📋 待启动 | 4周  | Power Tools、快捷键、Visualizations   |
 | Phase C：高级功能     | 📋 待启动 | 4周  | 跨应用链接、公式追踪、Prepare to Share |
 | Phase D：打磨部署     | 📋 待启动 | 2周  | MSI 安装器、E2E 测试、文档             |
@@ -173,7 +173,7 @@ cd src/web && npm run build
 
 | 纳入 MVP | 暂不纳入 MVP |
 | -------- | ------------ |
-| Sidecar 基础框架 + NetOffice COM 互操作 | 完整 SSO、复杂 RBAC、多租户计费 |
+| Sidecar 基础框架 + 原生 COM 互操作      | 完整 SSO、复杂 RBAC、多租户计费 |
 | 20 个以内高频快捷键（Win32 全局钩子） | AIWA 真实大模型生产调用 |
 | Power Tools 基础版 | 完整 PowerPoint / Word 插件能力 |
 | Visualizations 与 Model Check 基础版 | 100+ 快捷键全量覆盖 |
@@ -183,7 +183,7 @@ cd src/web && npm run build
 
 ## 风险警示
 
-1. **Office 版本兼容性**：NetOffice 提供版本无关代理层，覆盖 Office 2016/2019/365；关键功能需多版本手工回归
+1. **Office 版本兼容性**：原生 COM 需覆盖 Office 2016/2019/365 多版本手工回归；Office PIA 仅作为 Windows-only 预编译后备方案
 2. **全局键盘钩子**：WH_KEYBOARD_LL 可能触发杀毒软件警告；需 Code-sign Sidecar + 提供关闭选项
 3. **跨应用链接稳定性**：增加链接健康检查，提供自动修复向导
 4. **AI 数据安全**：支持私有化部署选项，支持 BYOK

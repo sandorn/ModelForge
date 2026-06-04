@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 
 namespace ModelForge.Backend.Auth;
@@ -13,11 +14,13 @@ public sealed class JwtService
 {
     private readonly JwtOptions _options;
     private readonly SymmetricSecurityKey _signingKey;
+    private readonly ILogger<JwtService> _logger;
 
-    public JwtService(JwtOptions options)
+    public JwtService(JwtOptions options, ILogger<JwtService> logger)
     {
         _options = options;
         _signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options.SecretKey));
+        _logger = logger;
     }
 
     /// <summary>签发 JWT Token。</summary>
@@ -51,8 +54,9 @@ public sealed class JwtService
         {
             return handler.ValidateToken(token, parameters, out _);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogWarning(ex, "JWT Token 验证失败");
             return null;
         }
     }

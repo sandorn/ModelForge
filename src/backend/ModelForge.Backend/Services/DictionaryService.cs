@@ -1,5 +1,7 @@
 using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace ModelForge.Backend.Services;
 
@@ -63,9 +65,11 @@ public interface IDictionaryService
 public sealed class InMemoryDictionaryService : IDictionaryService
 {
     private readonly ConcurrentDictionary<string, DictionaryTerm> _terms = new();
+    private readonly ILogger<InMemoryDictionaryService> _logger;
 
-    public InMemoryDictionaryService()
+    public InMemoryDictionaryService(ILogger<InMemoryDictionaryService>? logger = null)
     {
+        _logger = logger ?? NullLogger<InMemoryDictionaryService>.Instance;
         // 预置金融行业常用术语
         Seed("confidential", "机密", null, "Confidential", "Error", "Compliance");
         Seed("draft", "草案", null, "DRAFT", "Warning", "Compliance");
@@ -137,7 +141,10 @@ public sealed class InMemoryDictionaryService : IDictionaryService
                     }
                 }
             }
-            catch { /* 跳过无效正则 */ }
+            catch (Exception ex) when (ex is RegexParseException or ArgumentException)
+            {
+                _logger.LogWarning(ex, "术语 {Term} 的正则表达式无效", term.Term);
+            }
         }
 
         response.CleanedText = cleaned != request.Text ? cleaned : null;
