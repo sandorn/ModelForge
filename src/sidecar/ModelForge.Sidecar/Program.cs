@@ -6,6 +6,10 @@ using ModelForge.Sidecar.Keyboard;
 using ModelForge.Sidecar.Services;
 
 var builder = WebApplication.CreateSlimBuilder(args);
+builder.Host.UseWindowsService(options =>
+{
+    options.ServiceName = "ModelForge.Sidecar";
+});
 
 // Bind configuration
 var sidecarOptions = builder.Configuration.GetSection("Sidecar").Get<SidecarOptions>()

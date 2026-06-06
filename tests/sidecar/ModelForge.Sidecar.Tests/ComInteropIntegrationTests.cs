@@ -2,6 +2,8 @@ using System.Diagnostics;
 using Xunit;
 using ModelForge.Sidecar.Interop;
 
+#pragma warning disable CS8601, CS8602
+
 namespace ModelForge.Sidecar.Tests;
 
 public class ComInteropIntegrationTests

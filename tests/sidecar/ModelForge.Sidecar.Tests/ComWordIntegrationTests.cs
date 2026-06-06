@@ -3,6 +3,8 @@ using Xunit;
 using ModelForge.Sidecar.Interop;
 using ModelForge.Sidecar.Word;
 
+#pragma warning disable CS8602
+
 namespace ModelForge.Sidecar.Tests;
 
 public class ComWordIntegrationTests

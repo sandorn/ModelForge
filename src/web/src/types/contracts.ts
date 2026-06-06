@@ -103,6 +103,37 @@ export type AuditEventResponse = {
   recordedAtUtc: string;
 };
 
+// ── Corporate Dictionary ──
+export type DictionaryTerm = {
+  id: string;
+  term: string;
+  replacement?: string;
+  regexPattern?: string;
+  category: string;
+  severity: string;
+  updatedAt: string;
+};
+
+export type TermMatch = {
+  termId: string;
+  term: string;
+  matchedText: string;
+  position: number;
+  suggestion?: string;
+};
+
+export type DictionaryCheckRequest = {
+  text: string;
+  language?: string;
+};
+
+export type DictionaryCheckResponse = {
+  originalText: string;
+  matches: TermMatch[];
+  matchCount: number;
+  cleanedText?: string;
+};
+
 // ── Link Metadata ──
 export type LinkMetadata = {
   linkId: string;

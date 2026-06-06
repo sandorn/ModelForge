@@ -191,7 +191,7 @@ cd src/web && npm run build
 | Phase A：基础设施     | ✅ 完成 | 2周 | Sidecar + Web + Backend 框架 + COM 交互 + 测试基础 |
 | Phase B：核心功能     | ✅ 完成 | 4周 | Power Tools、快捷键(21)、Visualizations、ModelCheck、Word 模板(3) |
 | Phase C：高级功能     | ✅ 完成 | 4周 | DocBuilder(3)、PrepareToShare 增强、DeckCheck 增强、LinkManager UI、多宿主命令(Excel/PPT/Word)、Backend 全量命令注册 |
-| Phase D：打磨部署     | 🚧 进行中   | 2周 | MSI 安装器(WiX)、COM 集成(22)、E2E(24)、字典 API 信封化、DeckCheck Web 查看器、NamesManager 面板、Docker 编排验证；剩余：安装包安装/卸载回归、企业级 Dashboard/SSO/AIWA 生产接入 |
+| Phase D：打磨部署     | 🚧 进行中   | 2周 | MSI 安装器可复现构建(83MB, 含 Backend/Sidecar/Web/manifest)、COM 集成(22)、E2E(24)、字典 API 信封化、DeckCheck Web 查看器、NamesManager 面板、Docker 编排验证；剩余：安装/卸载真机回归、企业级 Dashboard/SSO/AIWA 生产接入 |
 
 ## MVP 边界
 
@@ -210,7 +210,12 @@ cd src/web && npm run build
 > - 修复 Sidecar `/api/execute` 回归：恢复 `commandId` 非空校验、`host` 白名单和大小写归一化。
 > - 修复 Word 命令路由：`word.build-cim`、`word.build-management-presentation` 已接入 Sidecar，并在无活动文档时自动创建文档。
 > - 稳定 COM 测试：Sidecar 测试程序集禁用并行，避免多个测试同时启动/关闭 Office 进程。
+> - 修复 MSI 打包链路：`scripts/build-installer.ps1` 现在单文件发布 Backend/Sidecar，生成 Web/manifest WiX 片段，并构建完整 `ModelForge.msi`。
+> - 修复 Windows Service 启动链路：Backend/Sidecar 均启用 `UseWindowsService`，避免 MSI 注册服务后仍按控制台生命周期启动。
+> - 修复 Backend 发布版监听端口：`appsettings.json` 固定 `Urls=http://localhost:5095`，避免发布版/服务模式回落到 ASP.NET Core 默认 `:5000`。
+> - 推进 Web Add-in 产品化：Admin Console 已接入 Corporate Dictionary 后端 API；AIWA Mock 响应已增加 Corporate Dictionary 后处理。
 > - 验证结果：Solution Release 构建 0 error / 0 warning；非 COM 224/224、COM 22/22、Web 35/35 全部通过；`docker compose config --quiet` 通过。
+> - 未自动执行项：MSI 真机安装/卸载回归需要管理员 PowerShell；当前 Codex shell 非管理员，已在安装器文档中补充手工回归命令。
 
 > **Sidecar API 强化 (2026-06-06)**：`/api/execute` 已添加输入校验（`commandId` 非空 + `host` 白名单）；`/api/excel/info` 异常路径现已通过 `ILogger` 记录日志而非静默吞没。`SidecarExecuteRequest` DTO 已从 `SidecarEndpoints.cs` 移至 `ApiContracts.cs`（消除重复定义）。
 ## 风险警示

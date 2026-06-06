@@ -49,7 +49,7 @@ if (Test-Path "$root\src\web\dist") {
 # Build info
 $buildInfo = @{
     product = "ModelForge"
-    version = "0.1.0"
+    version = "0.1.1"
     configuration = "Release"
     runtime = "win-x64"
     builtAt = (Get-Date -Format "yyyyMMdd-HHmmss")

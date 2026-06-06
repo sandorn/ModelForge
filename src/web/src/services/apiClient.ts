@@ -6,6 +6,9 @@
   ConfigurationResponse,
   ConfigurationUpsertRequest,
   CreateLinkMetadataRequest,
+  DictionaryCheckRequest,
+  DictionaryCheckResponse,
+  DictionaryTerm,
   HealthResponse,
   LinkMetadata,
   LinkRefreshRequest,
@@ -68,6 +71,26 @@ export class ApiClient {
   }
 
   // ═══════════════════════════════════════════════════════
+  //  Corporate Dictionary
+  // ═══════════════════════════════════════════════════════
+
+  async getDictionaryTerms() {
+    return this.get<DictionaryTerm[]>('/api/dictionary/');
+  }
+
+  async upsertDictionaryTerm(term: Partial<DictionaryTerm>) {
+    return this.post<DictionaryTerm>('/api/dictionary/', term);
+  }
+
+  async deleteDictionaryTerm(id: string) {
+    return this.delete<{ deleted: string }>(`/api/dictionary/${encodeURIComponent(id)}`);
+  }
+
+  async checkDictionaryText(req: DictionaryCheckRequest) {
+    return this.post<DictionaryCheckResponse>('/api/dictionary/check', req);
+  }
+
+  // ═══════════════════════════════════════════════════════
   //  Link Metadata
   // ═══════════════════════════════════════════════════════
 
@@ -120,6 +143,14 @@ export class ApiClient {
       method: 'PUT',
       headers: this.buildHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(body),
+    });
+    return this.unwrap<T>(response);
+  }
+
+  private async delete<T>(path: string) {
+    const response = await fetch(`${this.baseUrl}${path}`, {
+      method: 'DELETE',
+      headers: this.buildHeaders(),
     });
     return this.unwrap<T>(response);
   }

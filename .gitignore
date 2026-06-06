@@ -88,3 +88,7 @@ packages/
 TestResults/
 coverage/
 *.trx
+
+# Generated installer fragments
+installer/ModelForge.Installer/GeneratedWebFiles.wxs
+ModelForge.wxs

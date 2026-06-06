@@ -1,6 +1,6 @@
 ﻿# ModelForge Phase A 演示脚本
 
-> 版本: 0.1.0-stage1 | 日期: 2026-06-05 | 目标: 验证 Sidecar + Backend + Web Add-in 三链路联调
+> 版本: 0.1.1-stage1 | 日期: 2026-06-05 | 目标: 验证 Sidecar + Backend + Web Add-in 三链路联调
 
 ## 前置条件
 

@@ -1,54 +1,87 @@
-# ModelForge 安装器
+# ModelForge Installer
 
-## 构建 MSI
+## Prerequisites
 
-### 前置条件
-
-- WiX Toolset v5: `dotnet tool install --global wix`
 - .NET 10 SDK
-- 已执行 `scripts/build-installer.ps1`，`publish/` 目录包含所有发布产物
+- Node.js 20+
+- WiX Toolset v5: `dotnet tool install --global wix`
 
-### 构建步骤
+## Build
+
+Run from the repository root:
 
 ```powershell
-# 1. 构建所有组件到 publish/
 .\scripts\build-installer.ps1 -Configuration Release
-
-# 2. 构建 MSI 安装包
-dotnet build installer\ModelForge.Installer\ModelForge.Installer.wixproj -c Release
-
-# 输出: installer\ModelForge.Installer\bin\Release\net10.0\ModelForge-0.1.0.msi
 ```
 
-### 安装
+The script performs the full packaging pipeline:
+
+- Publishes Backend as a self-contained single-file `win-x64` executable.
+- Publishes Sidecar as a self-contained single-file `win-x64` executable.
+- Builds the Web Add-in and copies `function-file.html`.
+- Copies the Office manifest.
+- Generates `installer\ModelForge.Installer\GeneratedWebFiles.wxs`.
+- Builds `ModelForge.msi` in the repository root.
+
+## Output
+
+| Artifact | Purpose |
+| --- | --- |
+| `ModelForge.msi` | Installable MSI package |
+| `ModelForge.wixpdb` | WiX debug database |
+| `publish\Backend\ModelForge.Backend.exe` | Backend service executable |
+| `publish\Sidecar\ModelForge.Sidecar.exe` | Sidecar service executable |
+| `publish\Web\` | Web Add-in static files |
+| `publish\manifest\modelForge.web.xml` | Office Add-in manifest |
+
+The MSI installs files under `C:\Program Files\ModelForge\` and registers `ModelForge.Backend` and `ModelForge.Sidecar` as Windows Services.
+Both services are built with Windows Service lifetime support and also remain runnable from a console for local smoke tests.
+
+## Validate
 
 ```powershell
-# 静默安装
-msiexec /i ModelForge-0.1.0.msi /quiet
-
-# 交互式安装
-msiexec /i ModelForge-0.1.0.msi
-
-# 卸载
-msiexec /x ModelForge-0.1.0.msi
+wix msi validate ModelForge.msi
 ```
 
-### 安装内容
-
-| 组件 | 路径 | 说明 |
-|------|------|------|
-| Sidecar | `C:\Program Files\ModelForge\Sidecar\` | Windows Service (自启动) |
-| Backend | `C:\Program Files\ModelForge\Backend\` | Windows Service (自启动) |
-| Web Add-in | `C:\Program Files\ModelForge\Web\` | 静态文件 |
-
-### Office Add-in 侧载
-
-安装完成后，需手动将 manifest 注册到 Office 受信任目录：
+To inspect embedded files:
 
 ```powershell
-# 复制 manifest
-Copy-Item "manifest\modelForge.web.xml" "$env:LOCALAPPDATA\Microsoft\Office\WEF\"
-
-# 或在 Excel 中：文件 → 选项 → 信任中心 → 受信任的加载项目录
-# 添加 C:\Program Files\ModelForge\Web\ 到受信任目录
+$out = Join-Path $env:TEMP "modelforge-msi-decompile"
+Remove-Item $out -Recurse -Force -ErrorAction SilentlyContinue
+wix msi decompile ModelForge.msi -x $out
+Get-ChildItem $out\File
 ```
+
+## Install And Uninstall
+
+Run these commands from an elevated PowerShell session.
+
+Interactive install:
+
+```powershell
+msiexec /i ModelForge.msi /l*v install.log
+```
+
+Quiet install:
+
+```powershell
+msiexec /i ModelForge.msi /quiet /l*v install.log
+```
+
+Uninstall:
+
+```powershell
+msiexec /x ModelForge.msi /l*v uninstall.log
+```
+
+Post-install checks:
+
+```powershell
+sc query ModelForge.Sidecar
+sc query ModelForge.Backend
+curl http://localhost:5200/health
+curl http://localhost:5095/health
+Get-ChildItem "C:\Program Files\ModelForge" -Recurse
+```
+
+Office Add-in sideloading is still manual: copy or register `C:\Program Files\ModelForge\manifest\modelForge.web.xml` through an Office trusted catalog.

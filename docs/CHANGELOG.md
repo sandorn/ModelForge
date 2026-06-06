@@ -28,6 +28,8 @@
 - `.env.example`: Docker 环境变量模板
 - `scripts/rebuild-publish.ps1`: 一键重生成构建产物脚本
 - `docker-compose.yml`: 新增 `env_file` 支持
+- `scripts/build-installer.ps1`: 修复 MSI 可复现构建链路，发布 Backend/Sidecar 自包含单文件服务，打包 Web Add-in、`function-file.html` 与 Office manifest
+- `ModelForge.msi`: 当前构建约 83 MB，已通过 `wix msi validate`
 
 #### 测试覆盖
 - Backend 单元测试: JwtService, ConfigurationStore, AuditSink, CommandCatalog, DictionaryService, LinkMetadataStore (36 tests)
@@ -43,11 +45,14 @@
 - Sidecar `/api/status` 异常改为日志记录
 - Web Add-in TypeScript 契约同步至 C# `ApiContracts.cs` (12 DTO + 6 enum)
 - apiClient 扩展 8 个新方法 (dispatchCommand, config, audit, links, login)
+- Web Add-in Admin Console 接入 Corporate Dictionary 后端 API，支持术语列表、添加/删除、样例文本检查
+- AIWA Mock 响应接入 Corporate Dictionary 后处理，自动调用 `/api/dictionary/check` 并展示命中项/替换建议
 
 #### 文档
 - `docs/PhaseA-Demo-Script.md`: 三链路联调演示脚本 (7 步)
 - `docs/API契约.md`: 新增 Sidecar REST API 章节 (4 端点)
 - `scripts/generate-samples.ps1`: 样例文件自动生成脚本
+- 当前版本提升至 `0.1.1-stage1` / MSI `0.1.1.0`
 
 ### 变更
 
@@ -60,6 +65,9 @@
 - Backend smoke test: 从 console `dotnet run` 迁移至 xUnit
 - sidecarClient 错误 API 路径修复
 - bridgeStore 类型引用修复 (SidecarHealth → HealthResponse, SidecarExcelInfo → SidecarStatusResponse)
+- Backend/Sidecar 启动入口补齐 `UseWindowsService`，避免 MSI 注册为 Windows Service 后无法按服务生命周期启动
+- Backend 发布版默认监听端口固定为 `http://localhost:5095`，避免只依赖 `launchSettings.json` 导致服务安装后回落到 `:5000`
+- MSI 构建脚本补齐 Web Add-in 静态资源和 manifest WiX 片段生成，避免安装包只包含骨架文件
 
 
 ## 0.1.0 (2026-06-03) — Phase A+B+C+D 初始交付

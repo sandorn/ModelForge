@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Button, Textarea, Text, Select, Badge } from '@fluentui/react-components';
+import { apiClient } from '../services/apiClient';
+import type { DictionaryCheckResponse } from '../types/contracts';
 
 type AiwaMode = 'summarize' | 'elaborate' | 'rephrase' | 'proofread' | 'translate';
 
@@ -34,6 +36,7 @@ export function AiwaChat() {
   const [input, setInput] = useState('');
   const [mode, setMode] = useState<AiwaMode>('summarize');
   const [loading, setLoading] = useState(false);
+  const [dictionaryEnabled, setDictionaryEnabled] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -54,9 +57,9 @@ export function AiwaChat() {
     setInput('');
     setLoading(true);
 
-    // Mock AI response (生产环境替换为后端 API 调用)
     await new Promise(r => setTimeout(r, 800));
-    const response = generateMockResponse(text, mode);
+    const mockResponse = generateMockResponse(text, mode);
+    const response = await applyDictionaryGuardrails(mockResponse, dictionaryEnabled);
 
     setMessages(prev => [...prev, {
       id: crypto.randomUUID(),
@@ -80,6 +83,9 @@ export function AiwaChat() {
       <div className="aiwa-header">
         <Text weight="bold" size={500}>AIWA</Text>
         <Badge appearance="tint" color="brand">本地 Mock</Badge>
+        <Badge appearance="tint" color={dictionaryEnabled ? 'success' : 'warning'}>
+          Dictionary {dictionaryEnabled ? 'On' : 'Off'}
+        </Badge>
       </div>
 
       {/* Mode Selector */}
@@ -93,6 +99,12 @@ export function AiwaChat() {
             {MODE_LABELS[m]}
           </button>
         ))}
+        <button
+          className={`aiwa-mode-btn${dictionaryEnabled ? ' active' : ''}`}
+          onClick={() => setDictionaryEnabled(prev => !prev)}
+        >
+          术语检查
+        </button>
       </div>
 
       {/* Messages */}
@@ -147,4 +159,29 @@ function generateMockResponse(text: string, mode: AiwaMode): string {
     default:
       return '未知模式。请选择总结/展开/改写/校对/翻译。';
   }
+}
+
+async function applyDictionaryGuardrails(text: string, enabled: boolean) {
+  if (!enabled) return text;
+
+  try {
+    const check = await apiClient.checkDictionaryText({ text, language: 'zh-CN' });
+    if (check.matchCount === 0) {
+      return `${text}\n\n✅ **Corporate Dictionary**：未发现术语风险。`;
+    }
+
+    return `${check.cleanedText ?? text}\n\n${formatDictionaryResult(check)}`;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'unknown error';
+    return `${text}\n\n⚠️ **Corporate Dictionary**：检查失败（${message}）。`;
+  }
+}
+
+function formatDictionaryResult(check: DictionaryCheckResponse) {
+  const items = check.matches.slice(0, 5).map(match => {
+    const suggestion = match.suggestion ? ` → 建议替换为「${match.suggestion}」` : '';
+    return `- ${match.matchedText}（规则：${match.term}，位置：${match.position}）${suggestion}`;
+  });
+  const suffix = check.matches.length > 5 ? `\n- 另有 ${check.matches.length - 5} 项命中未展示` : '';
+  return `⚠️ **Corporate Dictionary**：命中 ${check.matchCount} 项\n${items.join('\n')}${suffix}`;
 }

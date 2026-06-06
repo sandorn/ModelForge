@@ -12,8 +12,6 @@ public class ServiceFixture : IDisposable
     private Process? _backendProcess;
     private Process? _sidecarProcess;
     private Process? _excelProcess;
-    private Process? _pptProcess;
-    private Process? _wordProcess;
 
     public HttpClient BackendClient { get; }
     public HttpClient SidecarClient { get; }
@@ -105,8 +103,6 @@ public class ServiceFixture : IDisposable
     public void Dispose()
     {
         KillProcess(_excelProcess);
-        KillProcess(_pptProcess);
-        KillProcess(_wordProcess);
         KillProcess(_sidecarProcess);
         KillProcess(_backendProcess);
         BackendClient.Dispose();

@@ -4,6 +4,8 @@ using Xunit;
 using ModelForge.Sidecar.Interop;
 using ModelForge.Sidecar.PowerTools;
 
+#pragma warning disable CS8602
+
 namespace ModelForge.Sidecar.Tests;
 
 public class ComPowerToolsIntegrationTests

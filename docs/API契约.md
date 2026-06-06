@@ -143,7 +143,7 @@ X-Trace-Id: client-generated-id
   "data": {
     "product": "ModelForge",
     "component": "Backend API",
-    "version": "0.1.0-stage1",
+    "version": "0.1.1-stage1",
     "apiVersion": "v1",
     "buildTimestampUtc": "2026-06-01T10:00:00+00:00"
   },

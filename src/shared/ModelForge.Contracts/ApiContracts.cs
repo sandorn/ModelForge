@@ -35,7 +35,7 @@ namespace ModelForge.Contracts
     {
         public string Product { get; set; } = "ModelForge";
         public string Component { get; set; } = "Backend API";
-        public string Version { get; set; } = "0.1.0-stage1";
+        public string Version { get; set; } = "0.1.1-stage1";
         public string ApiVersion { get; set; } = "v1";
         public DateTimeOffset BuildTimestampUtc { get; set; } = DateTimeOffset.UtcNow;
     }

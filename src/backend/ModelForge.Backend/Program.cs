@@ -9,6 +9,11 @@ using ModelForge.Backend.Services;
 using ModelForge.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseWindowsService(options =>
+{
+    options.ServiceName = "ModelForge.Backend";
+});
+
 var logger = LoggerFactory.Create(c => c.AddConsole()).CreateLogger("ModelForge.Backend");
 
 // ── JWT Auth Configuration ──
