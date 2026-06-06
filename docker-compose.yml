@@ -1,11 +1,15 @@
-# ModelForge 私有化部署编排
-# 用法: docker compose up -d
+﻿# ModelForge 私有化部署编排
+# 用法:
+#   1. cp .env.example .env   (编辑 .env 设置密码和密钥)
+#   2. docker compose up -d
 
+# Sidecar (localhost:5200) runs on Windows host — not containerized (requires Win32 COM + Office).
 services:
-  # ── PostgreSQL 数据库 ──
+  # ── PostgreSQL ──
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
+    env_file: .env
     environment:
       POSTGRES_DB: modelforge
       POSTGRES_USER: modelforge
@@ -26,8 +30,10 @@ services:
       context: .
       dockerfile: docker/Backend.Dockerfile
     restart: unless-stopped
+    env_file: .env
     environment:
-      MODELFORGE_DB_CONNECTION: Host=postgres;Database=modelforge;Username=modelforge;Password=${MODELFORGE_DB_PASSWORD:-modelforge-dev}
+      DatabaseProvider: postgres
+      ConnectionStrings__ModelForge: Host=postgres;Database=modelforge;Username=modelforge;Password=${MODELFORGE_DB_PASSWORD:-modelforge-dev}
       Jwt__SecretKey: ${MODELFORGE_JWT_SECRET:-ModelForge-Production-Secret-ChangeMe-Min32Chars!!}
     ports:
       - "5095:8080"
@@ -43,10 +49,8 @@ services:
       - ollama_data:/root/.ollama
     ports:
       - "11434:11434"
-    # 启动后拉取默认模型:
-    # docker exec ollama ollama pull llama3.2:3b
 
-  # ── Web Add-in 静态文件 (Nginx) ──
+  # ── Web Add-in (Nginx) ──
   web:
     build:
       context: .

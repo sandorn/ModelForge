@@ -1,4 +1,4 @@
-using ModelForge.Sidecar.Commands;
+﻿using ModelForge.Sidecar.Commands;
 using Xunit;
 
 namespace ModelForge.Sidecar.Tests;
@@ -11,7 +11,7 @@ public class ShortcutRegistryTests
         var registry = new ShortcutRegistry();
         registry.RegisterDefaults();
         var all = registry.GetAll();
-        Assert.Equal(20, all.Count);
+        Assert.Equal(21, all.Count);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class ShortcutRegistryTests
     {
         var registry = new ShortcutRegistry();
         registry.RegisterDefaults();
-        Assert.Equal(20, registry.GetAll().Count);
+        Assert.Equal(21, registry.GetAll().Count);
 
         var newShortcuts = new[]
         {

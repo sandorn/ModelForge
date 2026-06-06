@@ -6,6 +6,7 @@ namespace ModelForge.Backend.Services;
 public interface IAuditSink
 {
     Task<AuditEventResponse> RecordAsync(AuditEventRequest request, CancellationToken cancellationToken);
+    Task<IReadOnlyList<(AuditEventRequest Request, AuditEventResponse Response)>> GetRecentAsync(int count, CancellationToken cancellationToken);
 }
 
 public sealed class InMemoryAuditSink : IAuditSink
@@ -24,5 +25,12 @@ public sealed class InMemoryAuditSink : IAuditSink
 
         _events.Enqueue((request, response));
         return Task.FromResult(response);
+    }
+
+    public Task<IReadOnlyList<(AuditEventRequest Request, AuditEventResponse Response)>> GetRecentAsync(int count, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var items = _events.Reverse().Take(Math.Max(1, count)).ToList();
+        return Task.FromResult<IReadOnlyList<(AuditEventRequest, AuditEventResponse)>>(items);
     }
 }

@@ -1,4 +1,4 @@
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
 
   <?define ProductName="ModelForge" ?>
@@ -18,7 +18,7 @@
     <MediaTemplate EmbedCab="yes" />
 
     <!-- Feature: Sidecar Windows Service -->
-    <Feature Id="SidecarFeature" Title="ModelForge Sidecar" Level="1" Absent="disallow"
+    <Feature Id="SidecarFeature" Title="ModelForge Sidecar" Level="1"
              Description=".NET 10 Sidecar Worker Service — COM 互操作与键盘钩子引擎">
       <ComponentGroupRef Id="SidecarComponents" />
     </Feature>

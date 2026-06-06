@@ -1,59 +1,57 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ModelForge Function File</title>
   <script src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+</head>
+<body>
   <script>
     Office.onReady(() => {
-      // Register all ExecuteFunction handlers
-      Office.actions.associate('onExecute', executeCommand);
+      console.log("ModelForge function-file ready");
     });
 
     /**
-     * Execute a ModelForge command via the Sidecar REST API.
-     * @param {Office.AddinCommands.Event} event
+     * onExecute handler — called by Ribbon buttons.
+     * Reads the button id (commandId) and forwards to Sidecar REST API.
      */
-    async function executeCommand(event) {
+    async function onExecute(event) {
       const commandId = event?.source?.id;
       if (!commandId) {
-        console.error('ModelForge: No command ID in event');
-        event.completed({ allowEvent: false, errorMessage: 'Missing command ID' });
+        event.completed({ allowEvent: false });
         return;
       }
 
       try {
-        const response = await fetch('http://localhost:5200/api/execute', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            commandId: commandId,
-            host: 'excel',
-          }),
+        // Determine host from command ID prefix
+        let host = "excel";
+        if (commandId.startsWith("ppt.")) host = "powerpoint";
+        else if (commandId.startsWith("word.")) host = "word";
+
+        const response = await fetch("http://localhost:5200/api/execute", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Trace-Id": crypto.randomUUID(),
+          },
+          body: JSON.stringify({ commandId, host }),
         });
 
         if (response.ok) {
-          const result = await response.json();
-          console.log('ModelForge: Command executed', result);
-          event.completed({ allowEvent: true });
+          const data = await response.json();
+          console.log("Command executed:", commandId, data);
         } else {
-          const error = await response.text();
-          console.error('ModelForge: Command failed', error);
-          event.completed({ allowEvent: false, errorMessage: error });
+          console.error("Command failed:", commandId, response.status);
         }
       } catch (err) {
-        console.error('ModelForge: Sidecar unreachable', err);
-        event.completed({
-          allowEvent: false,
-          errorMessage: 'Sidecar service is not running. Please start ModelForge Sidecar.',
-        });
+        console.error("Command execution error:", err);
       }
+
+      event.completed();
     }
+
+    // Register the function with Office
+    Office.actions.associate("onExecute", onExecute);
   </script>
-</head>
-<body>
-  <p>ModelForge Function File — loaded by Office.js for ribbon command execution.</p>
 </body>
 </html>

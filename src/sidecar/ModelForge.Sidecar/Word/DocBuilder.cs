@@ -105,4 +105,41 @@ public static class DocBuilder
             }
         };
     }
+
+    public static DocTemplate CreateCimTemplate(string companyName = "")
+    {
+        if (string.IsNullOrWhiteSpace(companyName)) companyName = "目标公司";
+        return new DocTemplate
+        {
+            Title = companyName + " - CIM",
+            Sections = new List<DocSection>
+            {
+                new() { Heading = "1. Exec Summary", Body = "Investment highlights and growth outlook." },
+                new() { Heading = "2. Company Overview", Body = "Basic information and business model." },
+                new() { Heading = "3. Market Analysis", Body = "TAM, growth rate, competitive landscape." },
+                new() { Heading = "4. Competitive Advantages", Body = "Tech moat, brand, customer stickiness." },
+                new() { Heading = "5. Financials", Body = "Historical financial data table placeholder." },
+                new() { Heading = "6. Management & Ownership", Body = "Founding team and equity structure." },
+                new() { Heading = "7. Risk Factors", Body = "Key operational, financial and compliance risks." },
+            }
+        };
+    }
+
+    public static DocTemplate CreateManagementPresentationTemplate(string companyName = "")
+    {
+        if (string.IsNullOrWhiteSpace(companyName)) companyName = "公司名称";
+        return new DocTemplate
+        {
+            Title = companyName + " - Management Presentation Outline",
+            Sections = new List<DocSection>
+            {
+                new() { Heading = "A. Company Overview", Body = "Business model, team, milestones." },
+                new() { Heading = "B. Market & Competition", Body = "Market landscape, positioning, growth drivers." },
+                new() { Heading = "C. Financial Performance", Body = "Revenue drivers, cost structure, profit path." },
+                new() { Heading = "D. Growth Strategy", Body = "Organic growth, M&A, new markets." },
+                new() { Heading = "E. Funding Use", Body = "Capital allocation plan." },
+            }
+        };
+    }
+
 }

@@ -50,6 +50,16 @@ public static class SidecarEndpoints
             ILoggerFactory loggerFactory) =>
         {
             var logger = loggerFactory.CreateLogger("Sidecar.Execute");
+            if (string.IsNullOrWhiteSpace(request.CommandId))
+            {
+                return Results.BadRequest(new { error = "commandId is required and must not be empty." });
+            }
+
+            var host = string.IsNullOrWhiteSpace(request.Host) ? "excel" : request.Host.Trim().ToLowerInvariant();
+            if (host is not ("excel" or "powerpoint" or "word"))
+            {
+                return Results.BadRequest(new { error = $"Invalid host '{request.Host}'. Valid values: excel, powerpoint, word." });
+            }
             logger.LogInformation("执行命令: {CommandId}", request.CommandId);
 
             try
@@ -57,7 +67,7 @@ public static class SidecarEndpoints
                 string resultMessage;
 
                 // ── PowerPoint Commands ──
-                if (request.Host == "powerpoint")
+                if (host == "powerpoint")
                 {
                     var ppt = factory.GetPowerPoint();
                     if (ppt == null)
@@ -68,7 +78,7 @@ public static class SidecarEndpoints
                         PptCommandIds.GenerateAgenda => System.Text.Json.JsonSerializer.Serialize(
                             DynamicAgendas.Generate(ppt, logger)),
                         PptCommandIds.DeckCheck => System.Text.Json.JsonSerializer.Serialize(
-                            DeckCheck.Run(ppt)),
+                            DeckCheck.RunWithDictionary(ppt, request.Arguments ?? new Dictionary<string, string>())),
                         PptCommandIds.AlignLeft => ShapeTools.AlignLeft(ppt),
                         PptCommandIds.DistributeHorizontal => ShapeTools.DistributeHorizontal(ppt),
                         PptCommandIds.UnifySize => ShapeTools.UnifySize(ppt),
@@ -76,16 +86,28 @@ public static class SidecarEndpoints
                     };
                 }
                 // ── Word Commands ──
-                else if (request.Host == "word")
+                else if (host == "word")
                 {
                     var word = factory.GetWord();
                     if (word == null)
                         return Results.Problem(title: "Word 未运行", detail: "请先启动 Word。", statusCode: 503);
 
+                    dynamic? wordDoc = null;
+                    try { wordDoc = word.ActiveDocument; } catch { }
+                    if (wordDoc == null)
+                    {
+                        wordDoc = word.Documents.Add();
+                    }
+
+                    var companyName = request.Arguments?.GetValueOrDefault("companyName", "") ?? "";
                     resultMessage = request.CommandId switch
                     {
                         WordCommandIds.BuildDueDiligence =>
-                            DocBuilder.Build(word, DocBuilder.CreateDueDiligenceTemplate()),
+                            DocBuilder.Build(word, DocBuilder.CreateDueDiligenceTemplate(companyName)),
+                        WordCommandIds.BuildCim =>
+                            DocBuilder.Build(word, DocBuilder.CreateCimTemplate(companyName)),
+                        WordCommandIds.BuildManagementPresentation =>
+                            DocBuilder.Build(word, DocBuilder.CreateManagementPresentationTemplate(companyName)),
                         WordCommandIds.EmbedExcelRange =>
                             LinkToExcel.EmbedExcelRange(excelService.GetApplication(), word),
                         WordCommandIds.RefreshLinks =>
@@ -93,7 +115,7 @@ public static class SidecarEndpoints
                         _ => $"未知 Word 命令: {request.CommandId}"
                     };
                 }
-                // ── Excel Commands (default) ──
+                // Excel Commands (default)
                 else
                 {
                     var excel = excelService.GetApplication();
@@ -146,7 +168,7 @@ public static class SidecarEndpoints
                 } // end Excel host else block
 
                 // 异步上报到后端桥接（fire-and-forget，不阻塞 API 响应）
-                var reportHost = request.Host switch
+                var reportHost = host switch
                 {
                     "powerpoint" => OfficeHost.PowerPoint,
                     "word" => OfficeHost.Word,

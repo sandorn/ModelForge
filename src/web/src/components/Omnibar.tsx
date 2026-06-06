@@ -9,6 +9,7 @@ interface SearchItem {
   category: string;
   shortcut?: string;
   description?: string;
+  hostLabel: string;
 }
 
 /**
@@ -21,13 +22,17 @@ export function Omnibar({ onClose }: { onClose: () => void }) {
   const [selectedIdx, setSelectedIdx] = useState(0);
 
   const items: SearchItem[] = useMemo(() =>
-    commands.map(c => ({
-      id: c.id,
-      displayName: c.displayName,
-      category: c.category ?? '',
-      shortcut: c.defaultShortcut ?? undefined,
-      description: c.description ?? undefined,
-    })),
+    commands.map(c => {
+      const hostLabel = c.host === 1 ? 'Excel' : c.host === 2 ? 'PPT' : c.host === 3 ? 'Word' : 'Web';
+      return {
+        id: c.id,
+        displayName: c.displayName,
+        category: c.category ?? '',
+        shortcut: c.defaultShortcut ?? undefined,
+        description: c.description ?? undefined,
+        hostLabel,
+      };
+    }),
     [commands]
   );
 
@@ -42,7 +47,7 @@ export function Omnibar({ onClose }: { onClose: () => void }) {
   }, [query, fuse, items]);
 
   const execute = useCallback((item: SearchItem) => {
-    void executeCommand(item.id);
+    void executeCommand(item.id, item.hostLabel.toLowerCase());
     onClose();
   }, [executeCommand, onClose]);
 
@@ -84,7 +89,7 @@ export function Omnibar({ onClose }: { onClose: () => void }) {
                   <Text size={100} className="omnibar-shortcut">{item.shortcut}</Text>
                 )}
               </div>
-              <Text size={100}>{item.category} · {item.id}</Text>
+              <Text size={100}><span className="omnibar-host">{item.hostLabel}</span> {item.category} · {item.id}</Text>
             </button>
           ))}
           {results.length === 0 && (

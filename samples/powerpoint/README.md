@@ -1,11 +1,18 @@
-# PowerPoint 样例目录
+﻿# PowerPoint Sample Files
 
-本目录用于存放阶段二及以后用于验证 Excel → PowerPoint 链接、刷新和排版能力的样例演示文稿。
+To generate sample PowerPoint files for testing ModelForge:
 
-阶段一暂不提交真实演示文稿，仅保留目录说明。后续建议补充：
+```powershell
+.\scripts\generate-samples.ps1
+```
 
-- 链接到 Excel 区域的图表页。
-- 可刷新估值摘要页。
-- 管理咨询风格图表和表格模板。
+This creates:
+| File | Description |
+|------|-------------|
+| `investment-committee-template.pptx` | 3-slide template (Title, Agenda, Financial Highlights) |
 
-样例文件不得包含客户真实数据、敏感财务数据或未授权模板。
+Used for:
+- Deck Check
+- Dynamic Agendas
+- Excel → PowerPoint linking
+- Shape alignment tools

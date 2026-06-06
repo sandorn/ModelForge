@@ -1,11 +1,17 @@
-# Word 样例目录
+﻿# Word Sample Files
 
-本目录用于存放阶段二及以后用于验证 Excel → Word 链接、报告生成和格式同步能力的样例文档。
+To generate sample Word files for testing ModelForge:
 
-阶段一暂不提交真实 Word 文档，仅保留目录说明。后续建议补充：
+```powershell
+.\scripts\generate-samples.ps1
+```
 
-- 投资备忘录样例。
-- 可刷新财务表格样例。
-- 尽调报告结构样例。
+This creates:
+| File | Description |
+|------|-------------|
+| `due-diligence-template.docx` | Structured due diligence report with sections and headings |
 
-样例文件不得包含客户真实数据、敏感财务数据或未授权模板。
+Used for:
+- Doc Builder
+- Link to Excel embedding
+- Document structure manipulation

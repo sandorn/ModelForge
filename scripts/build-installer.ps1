@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     ModelForge Phase D build script — publish Sidecar + Backend + Web
 
@@ -57,7 +57,11 @@ Push-Location "$root\src\web"
 try {
     npm run build 2>&1 | Out-Null
     if (Test-Path "dist") {
-        Copy-Item -Recurse "dist" "$publishDir\Web"
+        Copy-Item -Recurse "dist\*" "$publishDir\Web" -Force
+        # Also copy function-file.html for Office add-in commands
+        if (Test-Path "publicunction-file.html") {
+            Copy-Item "publicunction-file.html" "$publishDir\Web" -Force
+        }
         Write-Host "  -> Web built: $publishDir\Web"
     } else {
         Write-Warning "  -> npm build did not produce dist/ directory"
@@ -68,10 +72,22 @@ try {
 
 # 4. Copy manifest + scripts
 Write-Host "[4/4] Copying assets..." -ForegroundColor Yellow
-Copy-Item "$root\manifest" -Destination "$publishDir\manifest" -Recurse
+Copy-Item -Path "$root\manifest" -Destination "$publishDir\manifest" -Recurse
 Copy-Item "$root\scripts\dev-backend.cmd" -Destination "$publishDir"
 Copy-Item "$root\scripts\dev-web.cmd" -Destination "$publishDir"
 
+
+# 5. Build MSI with WiX
+Write-Host '[5/5] Building MSI with WiX...' -ForegroundColor Yellow
+try {
+    wix build 'installer\ModelForge.Installer\Package.wxs' -o '\ModelForge.msi' 2>&1 | Out-Null
+    if (Test-Path 'D:\ModelForge.msi') {
+        $size = (Get-Item 'D:\ModelForge.msi').Length / 1KB
+        Write-Host "  -> MSI built: D:\ModelForge.msi ($([int]$size) KB)" -ForegroundColor Green
+    }
+} catch {
+    Write-Warning "WiX build failed. Install WiX Toolset v5: dotnet tool install -g wix"
+}
 # Write build info
 @"
 {

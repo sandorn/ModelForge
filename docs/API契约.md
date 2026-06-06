@@ -1,4 +1,4 @@
-# ModelForge API 契约（阶段一）
+﻿# ModelForge API 契约（阶段一）
 
 本文档定义阶段一后端桥接服务的基础 API 契约，用于连接 Sidecar、Web Add-in 与未来的自动化/AI 能力。阶段一目标不是实现完整业务逻辑，而是统一数据模型、TraceId、命令分发、配置、审计和链接元数据的最小可用接口。
 
@@ -8,9 +8,10 @@
 
 开发环境默认地址：
 
-```text
-http://localhost:5095
-```
+| 服务 | 地址 | 说明 |
+|------|------|------|
+| Backend API | `http://localhost:5095` | ASP.NET Core 认证、配置、审计、字典、链接元数据 |
+| Sidecar API | `http://localhost:5200` | .NET 10 Minimal API，COM 操作与快捷键执行端 |
 
 对应配置：
 
@@ -36,7 +37,7 @@ http://localhost:5095
 | --- | --- | --- | --- |
 | `traceId` | `string` | 是 | 请求追踪 ID，优先沿用请求头 `X-Trace-Id`，否则由后端生成。 |
 | `data` | `object/null` | 否 | 成功响应数据。 |
-| `error` | `string/null` | 否 | 错误信息。阶段一暂未实现全局异常包装，后续阶段补齐。 |
+| `error` | `string/null` | 否 | 错误信息。Sidecar `/api/execute` 已实现结构化错误响应（`ApiEnvelope<SidecarExecuteResponse>`），Backend 已实现全局异常中间件。 |
 
 ### 1.3 TraceId 规则
 
@@ -60,7 +61,7 @@ X-Trace-Id: client-generated-id
 
 ### 1.4 枚举值
 
-阶段一 C# 契约位于 `src/shared/ModelForge.Contracts/ApiContracts.cs`。Web 侧 TypeScript 契约位于 `src/web/src/types/contracts.ts`，枚举数值需与 C# 保持一致。
+阶段一 C# 契约位于 `src/shared/ModelForge.Contracts/ApiContracts.cs`（含所有跨层 DTO：`SidecarExecuteRequest`、`SidecarExecuteResponse`、`SidecarStatusResponse`）。Sidecar 端点文件不再内嵌 DTO 定义。Web 侧 TypeScript 契约位于 `src/web/src/types/contracts.ts`，枚举数值需与 C# 保持一致。
 
 #### OfficeHost
 
@@ -91,11 +92,10 @@ X-Trace-Id: client-generated-id
 
 ## 2. 健康检查与版本
 
-### 2.1 GET `/health`
 
-用于 Sidecar 和 Web Add-in 判断本地桥接服务是否可用。
+### 2.1 GET `/health` (Enhanced)
 
-响应示例：
+健康检查现包含数据库连接状态：
 
 ```json
 {
@@ -103,13 +103,35 @@ X-Trace-Id: client-generated-id
   "data": {
     "status": "Healthy",
     "service": "ModelForge.Backend",
-    "timestampUtc": "2026-06-01T10:00:00+00:00"
+    "timestampUtc": "2026-06-05T10:00:00+00:00",
+    "database": { "provider": "postgres", "connected": true }
   },
   "error": null
 }
 ```
 
-### 2.2 GET `/api/version`
+### 2.2 GET `/api/admin/audit-events?count=50`
+
+管理员查询最近审计事件（需 Admin 角色 JWT）。
+
+响应示例：
+
+```json
+[
+  {
+    "eventId": "abc123",
+    "eventType": "command.executed",
+    "actorId": "user-1",
+    "host": 1,
+    "severity": 1,
+    "commandId": "excel.fill-down",
+    "resourceId": null,
+    "recordedAtUtc": "2026-06-05T10:00:00+00:00"
+  }
+]
+```
+
+### 2.3 GET `/api/version`
 
 用于显示后端版本和 API 版本。
 
@@ -300,6 +322,8 @@ X-Trace-Id: client-generated-id
 }
 ```
 
+校验规则：`sourceDocumentId`、`sourceAddress`、`targetDocumentId`、`targetAddress` 均为必填（400 BadRequest）。
+
 响应状态：`201 Created`
 
 ### 6.3 POST `/api/links/{linkId}/refresh`
@@ -331,19 +355,244 @@ X-Trace-Id: client-generated-id
 }
 ```
 
-## 7. 阶段一安全与兼容性边界
+
+## 7. 企业术语字典
+
+字典服务用于术语合规检查（术语命中检测与自动替换），种子术语涵盖金融行业常用词汇。
+
+### 7.1 GET `/api/dictionary/`
+
+返回所有字典条目。
+
+响应示例：
+
+```json
+{
+  "traceId": "trace-id",
+  "data": [
+    { "id": "ebitda", "term": "EBITDA", "replacement": null, "regexPattern": "\bebitda\b", "category": "Financial", "severity": "Info" }
+  ],
+  "error": null
+}
+```
+
+### 7.2 POST `/api/dictionary/`
+
+新增或更新术语条目。需要 Admin 角色 JWT。
+
+请求体：
+
+```json
+{
+  "id": "npv",
+  "term": "NPV/净现值",
+  "replacement": null,
+  "regexPattern": "\bnpv\b",
+  "category": "Financial",
+  "severity": "Info"
+}
+```
+
+校验规则：`id` 和 `term` 为必填字段（400 BadRequest）。
+
+校验规则：`sourceDocumentId`、`sourceAddress`、`targetDocumentId`、`targetAddress` 均为必填（400 BadRequest）。
+
+响应状态：`201 Created`
+
+### 7.3 DELETE `/api/dictionary/{id}`
+
+删除指定术语。需要 Admin 角色 JWT。
+
+成功时返回 `{"data": {"deleted": "id"}}`；未找到时返回 `404 {"error": "Term 'id' not found."}`。
+
+### 7.4 POST `/api/dictionary/check`
+
+检查文本中的术语命中。
+
+请求体：
+
+```json
+{
+  "text": "This is a DRAFT confidential document with TBD items.",
+  "language": "en"
+}
+```
+
+响应示例：
+
+```json
+{
+  "traceId": "trace-id",
+  "data": {
+    "originalText": "This is a DRAFT...",
+    "matches": [
+      { "termId": "draft", "term": "DRAFT", "matchedText": "DRAFT", "position": 10, "suggestion": null }
+    ],
+    "matchCount": 3,
+    "cleanedText": null
+  },
+  "error": null
+}
+```
+
+### 7.5 预置种子术语
+
+| id | term | severity | category |
+|----|------|----------|----------|
+| `confidential` | 机密 | Error | Compliance |
+| `draft` | 草案 | Warning | Compliance |
+| `internal_only` | 内部使用 | Error | Compliance |
+| `tbd` | 待定 | Info | Editorial |
+| `ebitda` | EBITDA | Info | Financial |
+| `revenue` | 收入/Revenue | Info | Financial |
+| `npv` | NPV/净现值 | Info | Financial |
+| `irr` | IRR/内部收益率 | Info | Financial |
+| `pe_ratio` | P/E Ratio | Info | Financial |
+
+
+## 8. Sidecar REST API
+
+Sidecar 暴露 localhost REST API (:5200) 供 Web Add-in 任务窗格调用，执行 COM 深度操作。
+
+### 8.1 GET `/health`
+
+Sidecar 健康检查。
+
+响应示例：
+
+```json
+{
+  "status": "Healthy",
+  "service": "ModelForge.Sidecar",
+  "timestampUtc": "2026-06-05T10:00:00+00:00"
+}
+```
+
+### 8.2 GET `/api/shortcuts`
+
+返回已注册的快捷键列表。
+
+响应示例：
+
+```json
+[
+  { "commandId": "excel.fill-down", "displayName": "快速向下填充", "shortcut": "Ctrl+Alt+D" }
+]
+```
+
+### 8.3 POST `/api/execute`
+
+核心命令执行端点。支持 Excel/PowerPoint/Word 命令路由。
+
+请求体 (`SidecarExecuteRequest`)：
+
+```json
+{
+  "commandId": "excel.model-check",
+  "host": "excel",
+  "arguments": { "selection": "Sheet1!A1:D20" }
+}
+```
+
+字段说明：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `commandId` | `string` | 是 | 命令 ID，如 `excel.model-check` |
+| `host` | `string` | 是 | 目标宿主：`excel`、`powerpoint`、`word` |
+| `arguments` | `object` | 否 | 命令参数（格式类型、年数等） |
+
+响应体 (`ApiEnvelope<SidecarExecuteResponse>`)：
+
+```json
+{
+  "traceId": "trace-id",
+  "data": {
+    "success": true,
+    "commandId": "excel.model-check",
+    "message": "Command executed successfully.",
+    "result": "{...}"
+  },
+  "error": null
+}
+```
+
+错误场景：
+
+| HTTP 状态 | 场景 |
+|-----------|------|
+| 400 | `commandId` 为空或 `host` 值非法（合法值：`excel`、`powerpoint`、`word`） |
+| 503 | 目标 Office 应用未运行（需先启动 Excel/PowerPoint/Word） |
+| 500 | COM 操作执行异常（已记录完整异常日志） |
+
+> **新增**：`/api/execute` 端点已在入口处执行输入校验——`commandId` 非空验证和 `host` 白名单过滤（`HashSet<string>(StringComparer.OrdinalIgnoreCase)`），无效请求立即返回 400 BadRequest。
+
+### 8.4 GET `/api/excel/info`
+
+查询当前 Excel 连接状态和活动文档信息。这是实际的 Sidecar 端点路径。
+
+响应体：
+
+```json
+{
+  "connected": true,
+  "workbook": "financial-model.xlsx",
+  "worksheet": "Sheet1",
+  "selection": "$A$1:$D$20",
+  "version": "16.0"
+}
+```
+
+当 Excel 未运行或 COM 连接失败时：
+
+```json
+{
+  "connected": false,
+  "error": "Exception message"
+}
+```
+
+> **注意**：异常场景（`connected: false`）现在会通过 `ILogger` 记录 Warning 级别日志，不再静默吞没。
+
+
+### 8.5 Word 命令 ID
+
+通过 `POST /api/execute` 调用，`host` 设为 `"word"`：
+
+| commandId | 说明 |
+|-----------|------|
+| `word.build-due-diligence` | 生成尽调清单模板 |
+| `word.build-cim` | 生成保密信息备忘录 (CIM) 模板 |
+| `word.build-management-presentation` | 生成管理层演示大纲模板 |
+| `word.embed-excel-range` | 嵌入 Excel 区域到 Word |
+| `word.refresh-links` | 刷新 Word 文档中的 Excel 链接 |
+
+
+### 8.6 PowerPoint 命令 ID
+
+通过 `POST /api/execute` 调用，`host` 设为 `"powerpoint"`：
+
+| commandId | 说明 |
+|-----------|------|
+| `ppt.generate-agenda` | 自动生成目录幻灯片 |
+| `ppt.deck-check` | 演示文稿合规审计（字体、术语、编号、文本密度） |
+| `ppt.align-left` | 选中形状左对齐 |
+| `ppt.distribute-horizontal` | 选中形状水平均分 |
+| `ppt.unify-size` | 选中形状统一尺寸 |
+
+## 9. 安全与兼容性边界
 
 - 阶段一不接入外部网络服务，不上传工作簿内容。
 - 配置、审计、链接元数据均为内存实现，便于验证 API 形态。
 - Sidecar 与 Web Add-in 不直接通信，必须通过后端桥接或 localhost REST。
-- 当前接口未启用鉴权，后续阶段将增加本地令牌、租户隔离和企业策略。
+- 当前接口未启用鉴权，后续阶段将增加本地令牌、租户隔离和企业策略。Sidecar `/api/execute` 端点已添加结构化错误响应和输入校验。
 - 当前接口未实现 OpenAPI 自动生成，后续可引入 Swagger 或 NSwag。
 
-## 8. 后续演进
+## 10. 后续演进
 
 阶段二建议补充：
 
-1. 全局异常处理中间件，确保错误响应也符合 `ApiEnvelope<T>`。
+1. 全局异常处理中间件进一步标准化。Sidecar `/api/execute` 已采用结构化错误响应。
 2. OpenAPI 文档和契约测试。
 3. 命令执行器抽象，将 Sidecar/Web/Backend 执行目标拆分为独立适配器。
 4. SignalR 或本地轮询机制，用于 Web Add-in 与 Sidecar 的异步状态同步。

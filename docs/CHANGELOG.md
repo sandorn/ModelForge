@@ -1,8 +1,95 @@
-# ModelForge Changelog
+﻿# ModelForge Changelog
+
+## [Unreleased] — Phase A 收尾
+
+### 新增
+
+
+### 新增
+
+#### 数据库
+- 多 Provider 支持: `inmemory` / `sqlite` / `postgres`，通过 `DatabaseProvider` 环境变量切换
+- Npgsql 集成: Docker Compose 自动使用 PostgreSQL
+- `SqliteLinkMetadataStore`: 链接元数据 SQLite 持久化
+
+#### API
+- `GET /api/admin/audit-events?count=50`: 管理员审计事件查询端点
+- `GET /health`: 增强，返回数据库连接状态
+
+
+
+#### 持久化
+- EF Core + SQLite: `ModelForgeDbContext` 含 4 张表（Configurations, AuditEvents, LinkMetadata, DictionaryTerms）
+- `SqliteConfigurationStore`: 配置持久化（替代 InMemoryConfigurationStore）
+- `SqliteAuditSink`: 审计事件持久化（替代 InMemoryAuditSink）
+- 通过 `UseSqlite=true` 配置切换（默认仍为内存模式以兼容现有测试）
+
+#### 部署
+- `.env.example`: Docker 环境变量模板
+- `scripts/rebuild-publish.ps1`: 一键重生成构建产物脚本
+- `docker-compose.yml`: 新增 `env_file` 支持
+
+#### 测试覆盖
+- Backend 单元测试: JwtService, ConfigurationStore, AuditSink, CommandCatalog, DictionaryService, LinkMetadataStore (36 tests)
+- Sidecar 单元测试扩展: CellClassifier, ToggleSign, StatisticsInserter, ModelCheckLogic (120 tests total)
+- Web Add-in 前端测试: authStore, contracts, bridgeStore (17 tests, Vitest + jsdom)
+
+#### CI/CD
+- CI 管道: `dotnet run` → `dotnet test`, 新增 Solution 级构建 + 全量测试 Job
+
+#### API
+- Sidecar `/api/execute` 结构化错误响应 (`ApiEnvelope<SidecarExecuteResponse>`)
+- Sidecar `/api/execute` 输入校验 (CommandId 非空, Host 合法性)
+- Sidecar `/api/status` 异常改为日志记录
+- Web Add-in TypeScript 契约同步至 C# `ApiContracts.cs` (12 DTO + 6 enum)
+- apiClient 扩展 8 个新方法 (dispatchCommand, config, audit, links, login)
+
+#### 文档
+- `docs/PhaseA-Demo-Script.md`: 三链路联调演示脚本 (7 步)
+- `docs/API契约.md`: 新增 Sidecar REST API 章节 (4 端点)
+- `scripts/generate-samples.ps1`: 样例文件自动生成脚本
+
+### 变更
+
+- **REMOVED**: `src/vsto/` 历史代码目录 (16 C# 文件)，已被 Sidecar 架构完全替代
+- Sidecar DTO 迁移: `SidecarExecuteRequest` 等从 `SidecarEndpoints.cs` → `ApiContracts.cs`
+- sidecarClient.ts: `/api/excel/info` → `/api/status`, 本地类型 → 共享 contracts
+
+### 已修复
+
+- Backend smoke test: 从 console `dotnet run` 迁移至 xUnit
+- sidecarClient 错误 API 路径修复
+- bridgeStore 类型引用修复 (SidecarHealth → HealthResponse, SidecarExcelInfo → SidecarStatusResponse)
+
 
 ## 0.1.0 (2026-06-03) — Phase A+B+C+D 初始交付
 
 ### 新增
+
+
+### 新增
+
+#### 数据库
+- 多 Provider 支持: `inmemory` / `sqlite` / `postgres`，通过 `DatabaseProvider` 环境变量切换
+- Npgsql 集成: Docker Compose 自动使用 PostgreSQL
+- `SqliteLinkMetadataStore`: 链接元数据 SQLite 持久化
+
+#### API
+- `GET /api/admin/audit-events?count=50`: 管理员审计事件查询端点
+- `GET /health`: 增强，返回数据库连接状态
+
+
+
+#### 持久化
+- EF Core + SQLite: `ModelForgeDbContext` 含 4 张表（Configurations, AuditEvents, LinkMetadata, DictionaryTerms）
+- `SqliteConfigurationStore`: 配置持久化（替代 InMemoryConfigurationStore）
+- `SqliteAuditSink`: 审计事件持久化（替代 InMemoryAuditSink）
+- 通过 `UseSqlite=true` 配置切换（默认仍为内存模式以兼容现有测试）
+
+#### 部署
+- `.env.example`: Docker 环境变量模板
+- `scripts/rebuild-publish.ps1`: 一键重生成构建产物脚本
+- `docker-compose.yml`: 新增 `env_file` 支持
 
 #### Sidecar (.NET 10 Worker Service)
 - Win32 全局键盘钩子 (WH_KEYBOARD_LL)，20 个快捷键注册

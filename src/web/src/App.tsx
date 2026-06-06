@@ -8,12 +8,17 @@ import { LoginPage } from './components/LoginPage';
 import { Omnibar } from './components/Omnibar';
 import { AiwaChat } from './components/AiwaChat';
 import { AdminConsole } from './components/AdminConsole';
+import { LinkManager } from './components/LinkManager';
+import { DeckCheckViewer } from './components/DeckCheckViewer';
+import { NamesManagerPanel } from './components/NamesManagerPanel';
 // Icon components using simple SVG
 const Icon = ({ d }: { d: string }) => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d={d} /></svg>
 );
 const HomeIcon = <Icon d="M12 3L4 9v12h6v-7h4v7h6V9z" />;
 const AppsIcon = <Icon d="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z" />;
+const PptIcon = <Icon d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM6 20V4h7v5h5v11H6zM8 12h8v2H8v-2zM8 16h8v2H8v-2z" />;
+const WordIcon = <Icon d="M4 4h10l6 6v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2zm9 1.5V10h4.5L13 5.5zM7 13h10v2H7v-2zm0 4h10v2H7v-2z" />;
 const ExcelIcon = <Icon d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM6 20V4h7v5h5v11H6z" />;
 const AuditIcon = <Icon d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />;
 const AiIcon = <Icon d="M21 8V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2h5l3-6 3 6h5a2 2 0 002-2v-2M8 14a2 2 0 100-4 2 2 0 000 4zm8 0a2 2 0 100-4 2 2 0 000 4z" />;
@@ -43,7 +48,9 @@ export function App() {
     { id: 'sidecar', label: 'Excel', icon: ExcelIcon },
     { id: 'audit', label: '审计', icon: AuditIcon },
     { id: 'aiwa', label: 'AIWA', icon: AiIcon },
-    { id: 'admin', label: '管理', icon: AdminIcon },
+    { id: 'ppt', label: 'PPT', icon: PptIcon },
+        { id: 'word', label: 'Word', icon: WordIcon },
+        { id: 'admin', label: '管理', icon: AdminIcon },
   ];
 
   return (
@@ -100,6 +107,27 @@ export function App() {
             sidecarConnected={sidecarConnected}
             excelInfo={excelInfo}
           />
+        )}
+
+        {activePanel === 'ppt' && (
+          <DeckCheckViewer />
+        )}
+
+        {activePanel === 'word' && (
+          <div className="panel">
+            <Title3>Word Tools</Title3>
+            <Card>
+              <CardHeader header={<Text weight="semibold">Document Templates</Text>} />
+              <Text>Available via Sidecar POST /api/execute (host: word):</Text>
+              <ul>
+                <li><Text>word.build-due-diligence</Text></li>
+                <li><Text>word.build-cim</Text></li>
+                <li><Text>word.build-management-presentation</Text></li>
+                <li><Text>word.embed-excel-range</Text></li>
+                <li><Text>word.refresh-links</Text></li>
+              </ul>
+            </Card>
+          </div>
         )}
 
         {activePanel === 'audit' && <AuditPanel commands={commands} />}

@@ -13,6 +13,17 @@ public sealed class CommandCatalog : ICommandCatalog
 {
     private readonly IReadOnlyCollection<CommandDefinition> _commands = new[]
     {
+        WordCommand("word.build-due-diligence", "Generate DD Checklist", "Word", "", "Generate due diligence checklist template."),
+        WordCommand("word.build-cim", "Generate CIM Memo", "Word", "", "Generate confidential information memorandum template."),
+        WordCommand("word.build-management-presentation", "Generate Mgmt Presentation", "Word", "", "Generate management presentation outline template."),
+        WordCommand("word.embed-excel-range", "Embed Excel Range", "Word", "", "Embed selected Excel range into active Word document."),
+        WordCommand("word.refresh-links", "Refresh Word Links", "Word", "", "Refresh embedded Excel links in Word document."),
+        PptCommand("ppt.generate-agenda", "Generate Agenda", "PPT", "", "Auto-generate agenda slide from PPT sections."),
+        PptCommand("ppt.deck-check", "Deck Check", "PPT", "", "Scan presentation for font, term and compliance issues."),
+        PptCommand("ppt.align-left", "Align Shapes Left", "PPT", "", "Align selected shapes to the leftmost shape."),
+        PptCommand("ppt.distribute-horizontal", "Distribute Horizontal", "PPT", "", "Distribute selected shapes evenly horizontally."),
+        PptCommand("ppt.unify-size", "Unify Shape Size", "PPT", "", "Resize all selected shapes to match the first shape dimensions."),
+
         ExcelCommand("excel.fill-right", "快速向右填充", "Power Tools", "Ctrl+Alt+R", "将当前公式或格式向右扩展到选定区域。"),
         ExcelCommand("excel.fill-down", "快速向下填充", "Power Tools", "Ctrl+Alt+D", "将当前公式或格式向下扩展到选定区域。"),
         ExcelCommand("excel.wrap-iferror", "IFERROR 封装", "Power Tools", "Ctrl+Alt+E", "为选中公式添加 IFERROR 包裹。"),
@@ -30,6 +41,7 @@ public sealed class CommandCatalog : ICommandCatalog
         ExcelCommand("excel.apply-finance-format", "应用财务格式", "Formatting", "Ctrl+Alt+N", "应用千分位、会计格式或百分比格式。"),
         ExcelCommand("excel.toggle-sign", "切换正负号", "Formatting", "Ctrl+Alt+G", "对选中数字区域切换符号。"),
         ExcelCommand("excel.insert-dcf-template", "插入 DCF 模板", "Templates", "Ctrl+Alt+1", "插入基础 DCF 估值表模板。"),
+        ExcelCommand("excel.names-manager", "Names Manager", "Workbook", "Ctrl+Alt+N", "Scan and clean named ranges in active workbook."),
         ExcelCommand("excel.link-to-powerpoint", "链接到 PowerPoint", "Linking", "Ctrl+Alt+K", "将选中 Range 或 Chart 链接到 PowerPoint。"),
         ExcelCommand("excel.refresh-links", "刷新 Office 链接", "Linking", "Ctrl+Alt+U", "刷新当前工作簿关联的 PPT/Word 链接。"),
         ExcelCommand("excel.open-task-pane", "打开任务窗格", "Bridge", "Ctrl+Alt+B", "打开 Web Add-in 管理与配置任务窗格。")
@@ -45,6 +57,20 @@ public sealed class CommandCatalog : ICommandCatalog
         return _commands.FirstOrDefault(command => string.Equals(command.Id, commandId, StringComparison.OrdinalIgnoreCase));
     }
 
+    private static CommandDefinition PptCommand(string id, string displayName, string category, string shortcut, string description)
+    {
+        return new CommandDefinition
+        {
+            Id = id,
+            DisplayName = displayName,
+            Host = OfficeHost.PowerPoint,
+            Target = CommandExecutionTarget.Sidecar,
+            Category = category,
+            DefaultShortcut = shortcut,
+            Description = description
+        };
+    }
+
     private static CommandDefinition ExcelCommand(string id, string displayName, string category, string shortcut, string description)
     {
         return new CommandDefinition
@@ -58,4 +84,19 @@ public sealed class CommandCatalog : ICommandCatalog
             Description = description
         };
     }
+
+    private static CommandDefinition WordCommand(string id, string displayName, string category, string shortcut, string description)
+    {
+        return new CommandDefinition
+        {
+            Id = id,
+            DisplayName = displayName,
+            Host = OfficeHost.Word,
+            Target = CommandExecutionTarget.Sidecar,
+            Category = category,
+            DefaultShortcut = shortcut,
+            Description = description
+        };
+    }
+
 }

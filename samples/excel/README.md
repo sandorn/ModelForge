@@ -1,12 +1,19 @@
-# Excel 样例目录
+﻿# Excel Sample Files
 
-本目录用于存放阶段二及以后用于验证 ModelForge Excel 能力的样例工作簿。
+To generate sample Excel workbooks for testing ModelForge:
 
-阶段一暂不提交真实业务工作簿，仅保留目录说明。后续建议补充：
+```powershell
+.\scripts\generate-samples.ps1
+```
 
-- 财务模型审计样例。
-- Excel → PowerPoint 链接刷新样例。
-- 高频快捷键与 Power Tools 操作样例。
-- 包含刻意错误的模型检查样例。
+This creates:
+| File | Description |
+|------|-------------|
+| `financial-model-basic.xlsx` | Three-statement financial model with Revenue, COGS, EBITDA, EBIT |
+| `model-with-errors.xlsx` | Contains error values (#REF!, #DIV/0!, #N/A), hardcoded values, and normal formulas |
 
-样例文件不得包含客户真实数据、敏感财务数据或未授权模板。
+These samples are used for:
+- Model Check (error scanning)
+- Visualizations (cell type classification)
+- Power Tools (IFERROR wrapping, statistics)
+- Prepare to Share (sensitive data removal)

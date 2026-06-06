@@ -262,3 +262,32 @@ body { margin: 0; }
   border-bottom-color: #fff;
   font-weight: 600;
 }
+
+
+/* ── Omnibar Host Badge ── */
+.omnibar-host {
+  display: inline-block;
+  padding: 1px 6px;
+  background: #e8f0fe;
+  color: #1a73e8;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+/* ── Link Manager ── */
+.link-manager {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.link-manager-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.link-error {
+  color: #b10e1c;
+  font-size: 13px;
+}

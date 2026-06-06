@@ -1,4 +1,4 @@
-name: ModelForge CI
+﻿name: ModelForge CI
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
 
 jobs:
   backend:
-    name: Backend build and smoke test
+    name: Backend build and test
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -24,11 +24,11 @@ jobs:
       - name: Build backend
         run: dotnet build src\backend\ModelForge.Backend\ModelForge.Backend.csproj --configuration Release
 
-      - name: Run backend smoke tests
-        run: dotnet run --project tests\backend\ModelForge.Backend.SmokeTests\ModelForge.Backend.SmokeTests.csproj --configuration Release
+      - name: Run backend tests
+        run: dotnet test tests\backend\ModelForge.Backend.SmokeTests\ModelForge.Backend.SmokeTests.csproj --configuration Release --verbosity minimal
 
   sidecar:
-    name: Sidecar build
+    name: Sidecar build and test
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -45,8 +45,27 @@ jobs:
       - name: Run sidecar tests
         run: dotnet test tests\sidecar\ModelForge.Sidecar.Tests\ModelForge.Sidecar.Tests.csproj --configuration Release --verbosity minimal
 
+  solution:
+    name: Solution build and non-COM tests
+    runs-on: windows-latest
+    needs: [backend, sidecar]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build solution
+        run: dotnet build ModelForge.sln --configuration Release --verbosity minimal
+
+      - name: Run non-COM tests (Backend + Sidecar + E2E)
+        run: dotnet test ModelForge.sln --configuration Release --verbosity minimal --filter "FullyQualifiedName!~ComPpt&FullyQualifiedName!~ComWord&FullyQualifiedName!~ComInterop&FullyQualifiedName!~ComPowerTools"
+
   web:
-    name: Web Add-in build
+    name: Web Add-in build and test
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -59,8 +78,25 @@ jobs:
 
       - name: Install dependencies
         working-directory: src/web
-        run: npm install
+        run: npm ci
+
+      - name: Run Web tests
+        working-directory: src/web
+        run: npm test -- --run
 
       - name: Build Web Add-in
         working-directory: src/web
         run: npm run build
+
+  docker:
+    name: Docker compose validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create .env from example
+        run: cp .env.example .env
+
+      - name: Validate docker compose config
+        run: docker compose -f docker-compose.yml config --quiet

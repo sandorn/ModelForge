@@ -10,12 +10,34 @@ public static class DeckCheck
         public int SlidesScanned { get; set; }
         public int FontIssues { get; set; }
         public int TermIssues { get; set; }
+        public int MissingSlideNumbers { get; set; }
+        public int DenseTextSlides { get; set; }
         public List<string> Issues { get; } = new();
     }
 
     /// <summary>
     /// 扫描当前演示文稿，检查字体、术语、颜色合规性。
     /// </summary>
+    /// <summary>
+    /// Run DeckCheck with enterprise dictionary terms via arguments dictionary.
+    /// Enables Backend dictionary integration: pass forbiddenTerms as pipe-delimited string.
+    /// </summary>
+    public static DeckCheckReport RunWithDictionary(dynamic pptApp, Dictionary<string, string>? args = null)
+    {
+        string[]? forbiddenTerms = null;
+        string[]? allowedFonts = null;
+
+        if (args != null && args.ContainsKey("forbiddenTerms"))
+            forbiddenTerms = args["forbiddenTerms"].Split('|');
+
+        if (args != null && args.ContainsKey("allowedFonts"))
+            allowedFonts = args["allowedFonts"].Split('|');
+
+        // Fall back to defaults if no custom args
+        return Run(pptApp, allowedFonts, forbiddenTerms);
+    }
+
+
     /// <param name="pptApp">PowerPoint Application</param>
     /// <param name="allowedFonts">允许的字体列表。默认 Arial 和 Calibri。</param>
     /// <param name="forbiddenTerms">禁止的术语列表。</param>
@@ -35,6 +57,8 @@ public static class DeckCheck
         foreach (dynamic slide in presentation.Slides)
         {
             int slideNum = slide.SlideIndex;
+            var hasSlideNumber = false;
+            var charCount = 0;
 
             foreach (dynamic shape in slide.Shapes)
             {
@@ -45,6 +69,11 @@ public static class DeckCheck
                     {
                         dynamic textRange = shape.TextFrame.TextRange;
                         string text = textRange.Text ?? "";
+                        charCount += text.Length;
+                        if (string.Equals(text.Trim(), slideNum.ToString(), StringComparison.OrdinalIgnoreCase))
+                        {
+                            hasSlideNumber = true;
+                        }
 
                         // 字体检查
                         try
@@ -73,6 +102,18 @@ public static class DeckCheck
                     }
                 }
                 catch { }
+            }
+
+            if (!hasSlideNumber)
+            {
+                report.MissingSlideNumbers++;
+                report.Issues.Add($"Slide {slideNum}: Missing slide number");
+            }
+
+            if (charCount > 2000)
+            {
+                report.DenseTextSlides++;
+                report.Issues.Add($"Slide {slideNum}: Dense text ({charCount} characters)");
             }
         }
 

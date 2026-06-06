@@ -1,4 +1,4 @@
-namespace ModelForge.Sidecar.Commands;
+﻿namespace ModelForge.Sidecar.Commands;
 
 /// <summary>
 /// 默认快捷键映射工厂。从原 VSTO 项目移植，快捷键注册表沿用相同数据格式。
@@ -15,6 +15,7 @@ public static class DefaultShortcutMap
             new ShortcutDefinition(ExcelCommandIds.InsertStatistics, "插入统计摘要", "Ctrl+Alt+S"),
             new ShortcutDefinition(ExcelCommandIds.VisualizeInputs, "标记硬编码输入", "Ctrl+Alt+I"),
             new ShortcutDefinition(ExcelCommandIds.VisualizeFormulas, "标记公式", "Ctrl+Alt+F"),
+            new ShortcutDefinition(ExcelCommandIds.NamesManager, "命名管理器", "Ctrl+Alt+W"),
             new ShortcutDefinition(ExcelCommandIds.VisualizeLinks, "标记外部链接", "Ctrl+Alt+L"),
             new ShortcutDefinition(ExcelCommandIds.ClearVisualizations, "清除审计标色", "Ctrl+Alt+C"),
             new ShortcutDefinition(ExcelCommandIds.ModelCheck, "运行 Model Check", "Ctrl+Alt+M"),

@@ -103,10 +103,54 @@
                   <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
                   <Control xsi:type="Button" id="excel.optimize-workbook"><Label resid="Optimize.Label" /><Supertip><Title resid="Optimize.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
                   <Control xsi:type="Button" id="excel.prepare-to-share"><Label resid="PrepareToShare.Label" /><Supertip><Title resid="PrepareToShare.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="excel.names-manager"><Label resid="NamesManager.Label" /><Supertip><Title resid="NamesManager.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
                 </Group>
 
               </Group>
               <Label resid="TabLabel" />
+            </CustomTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+
+      <Host xsi:type="Presentation">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <CustomTab id="ModelForge.PPT.Tab">
+              <Group id="ModelForge.PPT.Tab.Main">
+                <Label resid="PPT.TabLabel" />
+                <Group id="ModelForge.PPT.Tools">
+                  <Label resid="PPT.ToolsGroup.Label" />
+                  <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
+                  <Control xsi:type="Button" id="ppt.generate-agenda"><Label resid="PPTA.Agenda.Label" /><Supertip><Title resid="PPTA.Agenda.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="ppt.deck-check"><Label resid="PPTA.DeckCheck.Label" /><Supertip><Title resid="PPTA.DeckCheck.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="ppt.align-left"><Label resid="PPTA.AlignLeft.Label" /><Supertip><Title resid="PPTA.AlignLeft.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="ppt.distribute-horizontal"><Label resid="PPTA.DistH.Label" /><Supertip><Title resid="PPTA.DistH.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="ppt.unify-size"><Label resid="PPTA.Unify.Label" /><Supertip><Title resid="PPTA.Unify.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                </Group>
+              </Group>
+              <Label resid="PPT.TabLabel" />
+            </CustomTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+      <Host xsi:type="Document">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <CustomTab id="ModelForge.Word.Tab">
+              <Group id="ModelForge.Word.Tab.Main">
+                <Label resid="Word.TabLabel" />
+                <Group id="ModelForge.Word.Tools">
+                  <Label resid="Word.ToolsGroup.Label" />
+                  <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
+                  <Control xsi:type="Button" id="word.build-due-diligence"><Label resid="WordA.DD.Label" /><Supertip><Title resid="WordA.DD.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="word.build-cim"><Label resid="WordA.CIM.Label" /><Supertip><Title resid="WordA.CIM.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="word.build-management-presentation"><Label resid="WordA.MP.Label" /><Supertip><Title resid="WordA.MP.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="word.embed-excel-range"><Label resid="WordA.Embed.Label" /><Supertip><Title resid="WordA.Embed.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                  <Control xsi:type="Button" id="word.refresh-links"><Label resid="WordA.Refresh.Label" /><Supertip><Title resid="WordA.Refresh.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                </Group>
+              </Group>
+              <Label resid="Word.TabLabel" />
             </CustomTab>
           </ExtensionPoint>
         </DesktopFormFactor>
@@ -151,6 +195,21 @@
         <bt:String id="RefreshLinks.Label" DefaultValue="刷新链接" />
         <bt:String id="Optimize.Label" DefaultValue="优化工作簿" />
         <bt:String id="PrepareToShare.Label" DefaultValue="安全外发" />
+        <bt:String id="NamesManager.Label" DefaultValue="名称管理器" />
+        <bt:String id="PPT.TabLabel" DefaultValue="ModelForge" />
+        <bt:String id="PPT.ToolsGroup.Label" DefaultValue="PPT 工具" />
+        <bt:String id="PPTA.Agenda.Label" DefaultValue="生成目录" />
+        <bt:String id="PPTA.DeckCheck.Label" DefaultValue="Deck Check" />
+        <bt:String id="PPTA.AlignLeft.Label" DefaultValue="左对齐" />
+        <bt:String id="PPTA.DistH.Label" DefaultValue="水平均分" />
+        <bt:String id="PPTA.Unify.Label" DefaultValue="统一尺寸" />
+        <bt:String id="Word.TabLabel" DefaultValue="ModelForge" />
+        <bt:String id="Word.ToolsGroup.Label" DefaultValue="Word 工具" />
+        <bt:String id="WordA.DD.Label" DefaultValue="尽调清单" />
+        <bt:String id="WordA.CIM.Label" DefaultValue="CIM 备忘录" />
+        <bt:String id="WordA.MP.Label" DefaultValue="管理层演示" />
+        <bt:String id="WordA.Embed.Label" DefaultValue="嵌入 Excel" />
+        <bt:String id="WordA.Refresh.Label" DefaultValue="刷新链接" />
         <bt:String id="GetStarted.Title" DefaultValue="ModelForge 已加载" />
       </bt:ShortStrings>
       <bt:LongStrings>

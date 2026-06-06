@@ -42,7 +42,6 @@
 - **文档优先**：新增 API/路由/环境变量必须同步更新 docs/ 相关文档
 - **运行时边界**：Sidecar 使用 .NET 10 Web Host + 原生 COM（`GetActiveObject` P/Invoke，零 PIA）；后端服务使用 ASP.NET Core 10（目标框架 `net10.0`）
 - **MVP 顺序**：先完成 Sidecar + Web Add-in 基础设施，再扩展 PPT/Word 支持与 AIWA
-- **历史代码**：`src/vsto/` 目录为历史参考，不参与编译
 
 ## 项目结构
 
@@ -67,7 +66,6 @@ ModelForge/
 │   ├── web/                    # Web Add-in (React + TypeScript)
 │   ├── backend/                # 后端 API 桥接 (ASP.NET Core 10)
 │   ├── shared/                 # 共享类型/常量 (.NET 10)
-│   └── vsto/                   # 历史参考（不参与编译）
 ├── manifest/                   # Add-in Manifest 配置
 ├── docs/                       # 项目文档
 │   ├── 技术路线规划.md          # 🆕 新架构规划
@@ -83,7 +81,6 @@ ModelForge/
 | 模块            | 路径                              | 说明               |
 | --------------- | --------------------------------- | ------------------ |
 | Sidecar         | `src/sidecar/ModelForge.Sidecar/` | .NET 10 REST + 原生 COM           |
-| 历史参考        | `src/vsto/ModelForge.Excel/`      | 不参与编译 |
 | Web Add-in      | `src/web/`                        | 管理后台与 AI 功能 |
 | 后端 API        | `src/backend/`                    | 跨插件通信桥接 + 企业服务 |
 
@@ -150,6 +147,32 @@ cd src/web && npm run build
 | 状态管理      | Zustand                 | 4.0+ |
 | 数据库        | PostgreSQL / SQL Server | -    |
 
+
+## 测试统计
+
+| 项目 | 测试类 | 测试数 | 状态 |
+|------|--------|--------|------|
+| Backend 单元测试 | 10 | 46 | ✅ 全部通过（含 SQLite 持久化测试） |
+| Sidecar 非 COM 测试 | 13 | 154 | ✅ 全部通过 |
+| COM 集成测试 | 4 | 22 | ✅ Excel/PPT/Word 原生 COM 互操作 |
+| E2E 测试 | 1 | 24 | ✅ Backend + Sidecar HTTP 全链路 |
+| Web Add-in (TS) | 5 | 35 | ✅ 全部通过 |
+| 总计 | 33 | 281 | ✅ |
+
+> E2E 测试已实现：自动启动 Backend(:5095) + Sidecar(:5200)，验证 HTTP 全链路（健康检查/命令目录/配置/执行/输入校验）。
+> COM 集成测试已通过 Office 2024 验证：Excel (连接+读写+AutoFill)、PowerPoint (连接+幻灯片)、Word (连接+文本)。
+> 测试覆盖：JWT、配置存储、审计事件、命令目录、字典服务、链接元数据、快捷键注册、和弦解析、单元格分类、公式操作、统计计算、ModelCheck 逻辑、NamesManager、DocBuilder(3)、PrepareToShare 增强(隐藏行列+断裂链接)、LinkRefresher、DeckCheck 增强(编号+密度)、ShapeTools 消息格式、Linking 消息格式。Web: bridgeStore 多宿主 + LinkManager + Omnibar 宿主标签。COM 集成: Excel/PPT/Word 原生互操作验证。Sidecar `/api/execute` 已实现输入校验和结构化错误响应。Web Add-in 前端测试覆盖 authStore、contracts、bridgeStore。Backend 支持三模式持久化：`inmemory`（默认）、`sqlite`（EF Core + SQLite）、`postgres`（EF Core + Npgsql）。通过环境变量 `DatabaseProvider` 切换。
+
+## 部署与运维
+
+| 文件 | 说明 |
+|------|------|
+| `.env.example` | Docker 环境变量模板（复制为 `.env` 后填写） |
+| `docker-compose.yml` | PostgreSQL + Backend + Web + Ollama 一键部署 |
+| `scripts/rebuild-publish.ps1` | 重新生成 `publish/` 构建产物 |
+| `scripts/generate-samples.ps1` | 自动生成 Excel/PPT/Word 测试样例 |
+| `src/web/public/function-file.html` | Office Add-in 命令函数文件 |
+
 ## 深入文档指针
 
 | 文档         | 路径                       | 内容                     |
@@ -159,28 +182,37 @@ cd src/web && npm run build
 | 实现路径     | `docs/实现路径规划.md`     | 5 个实施阶段与里程碑    |
 | 开发环境     | `docs/开发环境搭建.md`     | Sidecar + Web + Backend 搭建 |
 | 版权信息     | `docs/版权信息.md`         | 版权声明与许可条款       |
+| Phase A 演示 | `docs/PhaseA-Demo-Script.md` | 三链路联调演示步骤 |
 
 ## 开发阶段进度
 
 | 阶段                  | 状态      | 周期 | 关键交付                              |
 | --------------------- | --------- | ---- | ------------------------------------- |
-| Phase A：基础设施     | 🔄 进行中  | 2周  | Sidecar + Web + 后端框架 + COM 互操作  |
-| Phase B：核心功能     | 📋 待启动 | 4周  | Power Tools、快捷键、Visualizations   |
-| Phase C：高级功能     | 📋 待启动 | 4周  | 跨应用链接、公式追踪、Prepare to Share |
-| Phase D：打磨部署     | 📋 待启动 | 2周  | MSI 安装器、E2E 测试、文档             |
+| Phase A：基础设施     | ✅ 完成 | 2周 | Sidecar + Web + Backend 框架 + COM 交互 + 测试基础 |
+| Phase B：核心功能     | ✅ 完成 | 4周 | Power Tools、快捷键(21)、Visualizations、ModelCheck、Word 模板(3) |
+| Phase C：高级功能     | ✅ 完成 | 4周 | DocBuilder(3)、PrepareToShare 增强、DeckCheck 增强、LinkManager UI、多宿主命令(Excel/PPT/Word)、Backend 全量命令注册 |
+| Phase D：打磨部署     | 🚧 进行中   | 2周 | MSI 安装器(WiX)、COM 集成(22)、E2E(24)、字典 API 信封化、DeckCheck Web 查看器、NamesManager 面板、Docker 编排验证；剩余：安装包安装/卸载回归、企业级 Dashboard/SSO/AIWA 生产接入 |
 
 ## MVP 边界
 
 | 纳入 MVP | 暂不纳入 MVP |
 | -------- | ------------ |
 | Sidecar 基础框架 + 原生 COM 互操作      | 完整 SSO、复杂 RBAC、多租户计费 |
-| 20 个以内高频快捷键（Win32 全局钩子） | AIWA 真实大模型生产调用 |
-| Power Tools 基础版 | 完整 PowerPoint / Word 插件能力 |
+| 29 个命令注册 (Excel 21 / PPT 4 / Word 4) + Win32 全局快捷键 | AIWA 真实大模型生产调用 |
+| Power Tools 基础版 | 完整 PowerPoint / Word 插件能力（基础工具已就绪） |
 | Visualizations 与 Model Check 基础版 | 100+ 快捷键全量覆盖 |
 | Prepare to Share 与 Workbook Optimization 基础版 | Brandfetch 等第三方 Logo 数据服务生产集成 |
 | Excel → PowerPoint Range / Chart 链接原型 | 私有化部署包和完整企业运维平台 |
 | 后端健康检查、配置读写、链接元数据、审计事件 |  |
 
+> **本轮审计修复 (2026-06-06)**：
+> - 修复 `DeckCheckReport` 契约缺口：补齐 `MissingSlideNumbers`、`DenseTextSlides`，并在 DeckCheck 扫描中实际统计。
+> - 修复 Sidecar `/api/execute` 回归：恢复 `commandId` 非空校验、`host` 白名单和大小写归一化。
+> - 修复 Word 命令路由：`word.build-cim`、`word.build-management-presentation` 已接入 Sidecar，并在无活动文档时自动创建文档。
+> - 稳定 COM 测试：Sidecar 测试程序集禁用并行，避免多个测试同时启动/关闭 Office 进程。
+> - 验证结果：Solution Release 构建 0 error / 0 warning；非 COM 224/224、COM 22/22、Web 35/35 全部通过；`docker compose config --quiet` 通过。
+
+> **Sidecar API 强化 (2026-06-06)**：`/api/execute` 已添加输入校验（`commandId` 非空 + `host` 白名单）；`/api/excel/info` 异常路径现已通过 `ILogger` 记录日志而非静默吞没。`SidecarExecuteRequest` DTO 已从 `SidecarEndpoints.cs` 移至 `ApiContracts.cs`（消除重复定义）。
 ## 风险警示
 
 1. **Office 版本兼容性**：原生 COM 需覆盖 Office 2016/2019/365 多版本手工回归；Office PIA 仅作为 Windows-only 预编译后备方案
@@ -189,9 +221,14 @@ cd src/web && npm run build
 4. **AI 数据安全**：支持私有化部署选项，支持 BYOK
 5. **COM 进程隔离**：Sidecar 通过 `Marshal.GetActiveObject()` 连接运行中 Office 实例；权限不匹配时记录诊断日志
 
+## 样例文件
+
+运行 `.\scripts\generate-samples.ps1` 自动生成测试用 Excel/PowerPoint/Word 样例文件。
+
 ## 协作流程
 
 - **代码审查**：所有 PR 必须经过代码审查
 - **测试要求**：单元测试覆盖率 > 60%
 - **文档同步**：代码变更必须同步更新相关文档
 - **提交规范**：遵循 Conventional Commits 规范
+- **CI**: GitHub Actions 自动运行 Backend 测试 (`dotnet test`) + Sidecar 测试 (`dotnet test`) + Solution 构建 + Web Add-in 构建 (`npm run build`)，均在 windows-latest 上执行。Docker Compose 支持本地一键部署 (postgres+backend+ollama+nginx)

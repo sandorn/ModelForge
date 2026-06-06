@@ -1,4 +1,4 @@
-namespace ModelForge.Sidecar.Commands;
+﻿namespace ModelForge.Sidecar.Commands;
 
 /// <summary>
 /// Excel 命令 ID 常量定义。从原 VSTO 项目不变移植。
@@ -25,5 +25,6 @@ public static class ExcelCommandIds
     public const string InsertDcfTemplate = "excel.insert-dcf-template";
     public const string LinkToPowerPoint = "excel.link-to-powerpoint";
     public const string RefreshLinks = "excel.refresh-links";
+    public const string NamesManager = "excel.names-manager";
     public const string OpenTaskPane = "excel.open-task-pane";
 }
