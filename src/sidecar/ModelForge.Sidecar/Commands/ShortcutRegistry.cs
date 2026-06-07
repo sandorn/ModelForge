@@ -14,6 +14,9 @@ public sealed class ShortcutRegistry
     /// <summary>注册所有默认快捷键。</summary>
     public void RegisterDefaults()
     {
+        if (!_shortcutsByChord.IsEmpty)
+            return;
+
         foreach (var shortcut in DefaultShortcutMap.Create())
         {
             Register(shortcut);
@@ -48,8 +51,28 @@ public sealed class ShortcutRegistry
     /// <summary>替换全部快捷键（用于用户自定义导入）。</summary>
     public void ReplaceAll(IEnumerable<ShortcutDefinition> shortcuts)
     {
+        var nextShortcuts = shortcuts.ToArray();
+        var validated = new Dictionary<string, ShortcutDefinition>(StringComparer.OrdinalIgnoreCase);
+        foreach (var shortcut in nextShortcuts)
+        {
+            if (string.IsNullOrWhiteSpace(shortcut.CommandId) ||
+                string.IsNullOrWhiteSpace(shortcut.DisplayName) ||
+                string.IsNullOrWhiteSpace(shortcut.Shortcut))
+            {
+                throw new InvalidOperationException("commandId, displayName, and shortcut are required.");
+            }
+
+            if (!validated.TryAdd(shortcut.Shortcut, shortcut))
+            {
+                var existing = validated[shortcut.Shortcut];
+                throw new InvalidOperationException(
+                    $"快捷键冲突：'{shortcut.Shortcut}' 已被 '{existing.DisplayName}' ({existing.CommandId}) 占用，" +
+                    $"无法注册 '{shortcut.DisplayName}' ({shortcut.CommandId})。");
+            }
+        }
+
         _shortcutsByChord.Clear();
-        foreach (var shortcut in shortcuts)
+        foreach (var shortcut in nextShortcuts)
         {
             Register(shortcut);
         }

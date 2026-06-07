@@ -17,7 +17,11 @@ public sealed class PowerPointInteropService : IDisposable
         _logger = logger;
     }
 
-    public dynamic? GetApplication() => _pptApp ??= _factory.GetPowerPoint();
+    public dynamic? GetApplication()
+    {
+        _pptApp = _factory.GetPowerPoint();
+        return _pptApp;
+    }
 
     public string? GetActivePresentationName()
     {

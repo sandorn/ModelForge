@@ -2,49 +2,45 @@
 setlocal enabledelayedexpansion
 
 echo ============================================
-echo  ModelForge — 全栈开发环境启动
+echo  ModelForge dev stack
 echo ============================================
 echo.
 
 pushd "%~dp0.."
+set "START_DIR=%CD%"
 
-set START_DIR=%CD%
-set TIMEOUT_BACKEND=12
-set TIMEOUT_SIDECAR=5
+echo [preflight] Checking Office runtime
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0check-office-runtime.ps1" -SkipSidecar
+if errorlevel 1 (
+    echo.
+    echo Office runtime preflight failed. Close WPS/Kingsoft Office and rerun this script.
+    popd
+    endlocal
+    exit /b 1
+)
+echo.
 
-:: ── 1. 启动 Backend (:5095) ──
-echo [1/3] 启动 Backend: http://localhost:5095
-start "ModelForge-Backend" cmd /c "dotnet run --project src\backend\ModelForge.Backend\ModelForge.Backend.csproj & pause"
-echo   等待 Backend 就绪...
+echo [1/3] Starting Backend: http://localhost:5095
+start "ModelForge-Backend" cmd /k "cd /d "%START_DIR%" && dotnet run --project src\backend\ModelForge.Backend\ModelForge.Backend.csproj --launch-profile ModelForge.Backend"
 timeout /t 3 /nobreak >nul
 
-:: ── 2. 启动 Sidecar (:5200) ──
-echo [2/3] 启动 Sidecar: http://localhost:5200
-start "ModelForge-Sidecar" cmd /c "dotnet run --project src\sidecar\ModelForge.Sidecar\ModelForge.Sidecar.csproj & pause"
-echo   等待 Sidecar 就绪...
+echo [2/3] Starting Sidecar: http://localhost:5200
+start "ModelForge-Sidecar" cmd /k "cd /d "%START_DIR%" && dotnet run --project src\sidecar\ModelForge.Sidecar\ModelForge.Sidecar.csproj"
 timeout /t 2 /nobreak >nul
 
-:: ── 3. 启动 Web Add-in (:5173) ──
-echo [3/3] 启动 Web Add-in: http://127.0.0.1:5173
-cd /d "%START_DIR%\src\web"
-start "ModelForge-Web" cmd /c "npm run dev & pause"
-cd /d "%START_DIR%"
+echo [3/3] Starting Web Add-in: http://localhost:5173
+start "ModelForge-Web" cmd /k "cd /d "%START_DIR%\src\web" && npm run dev"
 
 echo.
 echo ============================================
-echo  所有服务已启动：
-echo    Backend  : http://localhost:5095
-echo    Sidecar  : http://localhost:5200
-echo    Web      : http://127.0.0.1:5173
+echo  Services are starting in separate windows.
+echo    Backend : http://localhost:5095
+echo    Sidecar : http://localhost:5200
+echo    Web     : http://localhost:5173
 echo ============================================
 echo.
-echo 按任意键停止所有服务...
-pause >nul
-
-echo 正在停止服务...
-taskkill /FI "WINDOWTITLE eq ModelForge-*" /T /F >nul 2>&1
-echo 已停止。
+echo Keep those windows open while testing Office Ribbon.
+echo Close the three ModelForge-* windows when finished.
 
 popd
 endlocal
-exit /b 0

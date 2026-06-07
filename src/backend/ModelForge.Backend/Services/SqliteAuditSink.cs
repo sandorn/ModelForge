@@ -64,4 +64,19 @@ public sealed class SqliteAuditSink : IAuditSink
             }
         )).ToList();
     }
+
+    public Task<int> CountBeforeAsync(DateTimeOffset cutoffUtc, CancellationToken ct)
+    {
+        var cutoff = cutoffUtc.UtcDateTime;
+        return _db.AuditEvents.CountAsync(e => e.RecordedAtUtc < cutoff, ct);
+    }
+
+    public async Task<int> DeleteBeforeAsync(DateTimeOffset cutoffUtc, CancellationToken ct)
+    {
+        var cutoff = cutoffUtc.UtcDateTime;
+        var deleted = await _db.AuditEvents
+            .Where(e => e.RecordedAtUtc < cutoff)
+            .ExecuteDeleteAsync(ct);
+        return deleted;
+    }
 }

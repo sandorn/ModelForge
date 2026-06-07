@@ -17,28 +17,7 @@ public sealed class UserIdentity
 }
 
 /// <summary>
-/// 用户登录请求。
-/// </summary>
-public sealed class LoginRequest
-{
-    public string Username { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-}
-
-/// <summary>
-/// 登录响应。
-/// </summary>
-public sealed class LoginResponse
-{
-    public string Token { get; set; } = string.Empty;
-    public string UserId { get; set; } = string.Empty;
-    public string Username { get; set; } = string.Empty;
-    public string Role { get; set; } = string.Empty;
-    public DateTime ExpiresAt { get; set; }
-}
-
-/// <summary>
-/// 内存用户存储（阶段五 MVP）。生产环境替换为数据库 + ASP.NET Core Identity。
+/// 内存用户存储（MVP）。生产环境应替换为数据库 + ASP.NET Core Identity。
 /// </summary>
 public sealed class InMemoryUserStore
 {
@@ -47,30 +26,25 @@ public sealed class InMemoryUserStore
 
     public InMemoryUserStore()
     {
-        // 预置默认用户
         SeedUser("admin", "admin123", "Admin");
         SeedUser("analyst", "analyst123", "Analyst");
         SeedUser("auditor", "auditor123", "Auditor");
     }
 
-    private void SeedUser(string username, string password, string role)
-    {
-        var id = Guid.NewGuid().ToString("N")[..12];
-        _users[id] = new UserIdentity { Id = id, Username = username, Role = role };
-        var salt = Guid.NewGuid().ToString("N")[..16];
-        _passwords[username] = (HashPassword(password, salt), salt);
-    }
-
     public UserIdentity? ValidateCredentials(string username, string password)
     {
+        username = NormalizeUsername(username);
+        if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            return null;
+
         if (!_passwords.TryGetValue(username, out var stored))
             return null;
 
         if (HashPassword(password, stored.Salt) != stored.Hash)
             return null;
 
-        return _users.Values.FirstOrDefault(u =>
-            u.Username.Equals(username, StringComparison.OrdinalIgnoreCase) && u.IsActive);
+        return _users.Values.FirstOrDefault(user =>
+            user.Username.Equals(username, StringComparison.OrdinalIgnoreCase) && user.IsActive);
     }
 
     public UserIdentity? GetById(string id) =>
@@ -80,6 +54,18 @@ public sealed class InMemoryUserStore
 
     public UserIdentity AddUser(string username, string password, string role)
     {
+        username = NormalizeUsername(username);
+        if (string.IsNullOrWhiteSpace(username))
+            throw new ArgumentException("username is required.", nameof(username));
+        if (string.IsNullOrWhiteSpace(password))
+            throw new ArgumentException("password is required.", nameof(password));
+        if (string.IsNullOrWhiteSpace(role))
+            throw new ArgumentException("role is required.", nameof(role));
+        if (!RoleDefinitions.AllRoles.Contains(role))
+            throw new ArgumentException($"role must be one of: {string.Join(", ", RoleDefinitions.AllRoles)}.", nameof(role));
+        if (_passwords.ContainsKey(username))
+            throw new InvalidOperationException($"User '{username}' already exists.");
+
         var id = Guid.NewGuid().ToString("N")[..12];
         var salt = Guid.NewGuid().ToString("N")[..16];
         var user = new UserIdentity { Id = id, Username = username, Role = role };
@@ -96,10 +82,22 @@ public sealed class InMemoryUserStore
         return true;
     }
 
+    private void SeedUser(string username, string password, string role)
+    {
+        username = NormalizeUsername(username);
+        var id = Guid.NewGuid().ToString("N")[..12];
+        var salt = Guid.NewGuid().ToString("N")[..16];
+        _users[id] = new UserIdentity { Id = id, Username = username, Role = role };
+        _passwords[username] = (HashPassword(password, salt), salt);
+    }
+
     private static string HashPassword(string password, string salt)
     {
         using var sha = SHA256.Create();
         var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(password + salt));
         return Convert.ToHexStringLower(hash);
     }
+
+    private static string NormalizeUsername(string? username) =>
+        (username ?? string.Empty).Trim().ToLowerInvariant();
 }

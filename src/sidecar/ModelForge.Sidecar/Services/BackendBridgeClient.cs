@@ -72,4 +72,34 @@ public sealed class BackendBridgeClient
 
         return envelope?.Data ?? (IReadOnlyList<CommandDefinition>)Array.Empty<CommandDefinition>();
     }
+
+    /// <summary>获取后端记录的 Excel ↔ PPT/Word 链接元数据。</summary>
+    public async Task<IReadOnlyList<LinkMetadata>> GetLinkMetadataAsync(CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/links");
+        request.Headers.Add("X-Trace-Id", Guid.NewGuid().ToString("N"));
+
+        using var response = await _httpClient.SendAsync(request, ct).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<List<LinkMetadata>>>(
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }, ct).ConfigureAwait(false);
+
+        return envelope?.Data ?? (IReadOnlyList<LinkMetadata>)Array.Empty<LinkMetadata>();
+    }
+
+    /// <summary>读取后端企业词典术语；需要 Sidecar 配置 ServiceToken。</summary>
+    public async Task<IReadOnlyList<DictionaryTerm>> GetDictionaryTermsAsync(CancellationToken ct = default)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/dictionary/service-export");
+        request.Headers.Add("X-Trace-Id", Guid.NewGuid().ToString("N"));
+
+        using var response = await _httpClient.SendAsync(request, ct).ConfigureAwait(false);
+        response.EnsureSuccessStatusCode();
+
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<DictionaryExportResponse>>(
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true }, ct).ConfigureAwait(false);
+
+        return envelope?.Data?.Terms.ToArray() ?? (IReadOnlyList<DictionaryTerm>)Array.Empty<DictionaryTerm>();
+    }
 }

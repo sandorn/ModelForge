@@ -1,4 +1,5 @@
 ﻿using ModelForge.Backend.Services;
+using ModelForge.Contracts;
 using Xunit;
 
 namespace ModelForge.Backend.Tests.Services;
@@ -117,5 +118,41 @@ public class DictionaryServiceTests
         var result = service.Delete("nonexistent");
 
         Assert.False(result);
+    }
+
+    [Fact]
+    public void Import_AddsValidTermsAndReportsInvalidRows()
+    {
+        var service = new InMemoryDictionaryService();
+        var response = service.Import(new DictionaryImportRequest
+        {
+            Terms =
+            [
+                new DictionaryTerm { Id = "bulk-1", Term = "批量术语", Category = "Custom" },
+                new DictionaryTerm { Id = "bulk-invalid", Term = "", Category = "Custom" }
+            ]
+        });
+
+        Assert.Equal(1, response.Imported);
+        Assert.Equal(1, response.Skipped);
+        Assert.Single(response.Errors);
+        Assert.Contains(response.Terms, term => term.Id == "bulk-1");
+    }
+
+    [Fact]
+    public void Import_RespectsOverwriteFalseForExistingIds()
+    {
+        var service = new InMemoryDictionaryService();
+        service.AddOrUpdate(new DictionaryTerm { Id = "bulk-1", Term = "原始术语", Category = "Custom" });
+
+        var response = service.Import(new DictionaryImportRequest
+        {
+            Overwrite = false,
+            Terms = [new DictionaryTerm { Id = "bulk-1", Term = "更新术语", Category = "Custom" }]
+        });
+
+        Assert.Equal(0, response.Imported);
+        Assert.Equal(1, response.Skipped);
+        Assert.Contains(service.GetAll(), term => term.Id == "bulk-1" && term.Term == "原始术语");
     }
 }

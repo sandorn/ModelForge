@@ -2,59 +2,15 @@ using System.Collections.Concurrent;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using ModelForge.Contracts;
 
 namespace ModelForge.Backend.Services;
-
-/// <summary>
-/// 企业术语字典条目。
-/// </summary>
-public sealed class DictionaryTerm
-{
-    public string Id { get; set; } = string.Empty;
-    public string Term { get; set; } = string.Empty;
-    public string? Replacement { get; set; }
-    public string? RegexPattern { get; set; }
-    public string Category { get; set; } = "General";
-    public string Severity { get; set; } = "Warning"; // Warning | Error | Info
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-}
-
-/// <summary>
-/// 术语命中结果。
-/// </summary>
-public sealed class TermMatch
-{
-    public string TermId { get; set; } = string.Empty;
-    public string Term { get; set; } = string.Empty;
-    public string MatchedText { get; set; } = string.Empty;
-    public int Position { get; set; }
-    public string? Suggestion { get; set; }
-}
-
-/// <summary>
-/// 术语检查请求。
-/// </summary>
-public sealed class DictionaryCheckRequest
-{
-    public string Text { get; set; } = string.Empty;
-    public string? Language { get; set; } = "zh-CN";
-}
-
-/// <summary>
-/// 术语检查响应。
-/// </summary>
-public sealed class DictionaryCheckResponse
-{
-    public string OriginalText { get; set; } = string.Empty;
-    public List<TermMatch> Matches { get; set; } = new();
-    public int MatchCount => Matches.Count;
-    public string? CleanedText { get; set; }
-}
 
 public interface IDictionaryService
 {
     IReadOnlyList<DictionaryTerm> GetAll();
     DictionaryTerm AddOrUpdate(DictionaryTerm term);
+    DictionaryImportResponse Import(DictionaryImportRequest request);
     bool Delete(string id);
     DictionaryCheckResponse Check(DictionaryCheckRequest request);
 }
@@ -108,6 +64,38 @@ public sealed class InMemoryDictionaryService : IDictionaryService
 
         _terms[term.Id] = term;
         return term;
+    }
+
+    public DictionaryImportResponse Import(DictionaryImportRequest request)
+    {
+        var response = new DictionaryImportResponse();
+        for (var index = 0; index < request.Terms.Count; index++)
+        {
+            var term = request.Terms[index];
+            if (string.IsNullOrWhiteSpace(term.Term))
+            {
+                response.Errors.Add(new DictionaryImportError
+                {
+                    Index = index,
+                    Term = term.Term,
+                    Error = "term is required."
+                });
+                response.Skipped++;
+                continue;
+            }
+
+            if (!request.Overwrite && !string.IsNullOrWhiteSpace(term.Id) && _terms.ContainsKey(term.Id))
+            {
+                response.Skipped++;
+                continue;
+            }
+
+            AddOrUpdate(term);
+            response.Imported++;
+        }
+
+        response.Terms = GetAll();
+        return response;
     }
 
     public bool Delete(string id) => _terms.TryRemove(id, out _);

@@ -7,51 +7,186 @@
 </head>
 <body>
   <script>
-    Office.onReady(() => {
-      console.log("ModelForge function-file ready");
-    });
+    (function () {
+      const sidecarExecuteUrl = "http://localhost:5200/api/execute";
+      const sidecarTokenHeader = "X-ModelForge-Sidecar-Token";
 
-    /**
-     * onExecute handler — called by Ribbon buttons.
-     * Reads the button id (commandId) and forwards to Sidecar REST API.
-     */
-    async function onExecute(event) {
-      const commandId = event?.source?.id;
-      if (!commandId) {
-        event.completed({ allowEvent: false });
-        return;
+      function getHostForCommand(commandId) {
+        if (commandId && commandId.startsWith("ppt.")) return "powerpoint";
+        if (commandId && commandId.startsWith("word.")) return "word";
+        return "excel";
       }
 
-      try {
-        // Determine host from command ID prefix
-        let host = "excel";
-        if (commandId.startsWith("ppt.")) host = "powerpoint";
-        else if (commandId.startsWith("word.")) host = "word";
+      function createTraceId() {
+        if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+          return crypto.randomUUID();
+        }
 
-        const response = await fetch("http://localhost:5200/api/execute", {
+        return `trace-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      }
+
+      function getEnvelopeError(envelope, response) {
+        if (envelope && typeof envelope.error === "string" && envelope.error.length > 0) {
+          return envelope.error;
+        }
+
+        if (envelope && envelope.data && typeof envelope.data.message === "string" && envelope.data.message.length > 0) {
+          return envelope.data.message;
+        }
+
+        return `Sidecar command failed with HTTP ${response.status}.`;
+      }
+
+      function getFeedbackMessage(commandId, payload, isError) {
+        const title = isError ? "ModelForge 执行失败" : "ModelForge 执行完成";
+        const message = payload instanceof Error
+          ? payload.message
+          : payload?.message || payload?.result || "命令已发送到本机 Sidecar。";
+        return `${title}\n命令: ${commandId}\n${message}`;
+      }
+
+      function showFallbackFeedback(message, isError) {
+        try {
+          if (typeof window.alert === "function") {
+            window.alert(message);
+            return;
+          }
+        } catch (err) {
+          console.warn("ModelForge feedback alert failed:", err);
+        }
+
+        if (isError) {
+          console.error(message);
+        } else {
+          console.info(message);
+        }
+      }
+
+      function showCommandFeedback(commandId, payload, isError) {
+        const message = getFeedbackMessage(commandId, payload, isError);
+        const officeUi = typeof Office !== "undefined" ? Office.context?.ui : null;
+        if (!officeUi || typeof officeUi.displayDialogAsync !== "function") {
+          showFallbackFeedback(message, isError);
+          return message;
+        }
+
+        try {
+          const feedbackUrl = new URL("/feedback.html", window.location.origin);
+          feedbackUrl.searchParams.set("status", isError ? "error" : "success");
+          feedbackUrl.searchParams.set("commandId", commandId);
+          feedbackUrl.searchParams.set("message", payload instanceof Error ? payload.message : payload?.message || "");
+          officeUi.displayDialogAsync(
+            feedbackUrl.toString(),
+            { height: 32, width: 36, displayInIframe: true },
+            (asyncResult) => {
+              if (asyncResult?.status && asyncResult.status !== Office.AsyncResultStatus.Succeeded) {
+                showFallbackFeedback(message, isError);
+              }
+            },
+          );
+        } catch (err) {
+          console.warn("ModelForge feedback dialog failed:", err);
+          showFallbackFeedback(message, isError);
+        }
+
+        return message;
+      }
+
+      async function readEnvelope(response) {
+        try {
+          return await response.json();
+        } catch {
+          return null;
+        }
+      }
+
+      async function executeModelForgeCommand(commandId, traceId) {
+        if (!commandId || typeof commandId !== "string") {
+          throw new Error("commandId is required.");
+        }
+
+        const headers = {
+          "Content-Type": "application/json",
+          "X-Trace-Id": traceId || createTraceId(),
+        };
+        const sidecarToken = getSidecarToken();
+        if (sidecarToken) {
+          headers[sidecarTokenHeader] = sidecarToken;
+        }
+
+        const response = await fetch(sidecarExecuteUrl, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Trace-Id": crypto.randomUUID(),
-          },
-          body: JSON.stringify({ commandId, host }),
+          headers,
+          body: JSON.stringify({
+            commandId,
+            host: getHostForCommand(commandId),
+          }),
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log("Command executed:", commandId, data);
-        } else {
-          console.error("Command failed:", commandId, response.status);
+        const envelope = await readEnvelope(response);
+        if (!response.ok || envelope?.error || envelope?.data?.success === false) {
+          throw new Error(getEnvelopeError(envelope, response));
         }
-      } catch (err) {
-        console.error("Command execution error:", err);
+
+        if (!envelope?.data) {
+          throw new Error("Sidecar returned an empty command response.");
+        }
+
+        return envelope.data;
       }
 
-      event.completed();
-    }
+      function getSidecarToken() {
+        if (typeof window !== "undefined" && typeof window.MODELFORGE_SIDECAR_TOKEN === "string") {
+          return window.MODELFORGE_SIDECAR_TOKEN.trim();
+        }
 
-    // Register the function with Office
-    Office.actions.associate("onExecute", onExecute);
+        try {
+          const storedToken = window.localStorage?.getItem("modelforge_sidecar_token");
+          return storedToken && storedToken.trim() ? storedToken.trim() : "";
+        } catch {
+          return "";
+        }
+      }
+
+      async function onExecute(event) {
+        const commandId = event?.source?.id;
+        if (!commandId) {
+          console.error("ModelForge command missing source id.");
+          event?.completed?.();
+          return;
+        }
+
+        try {
+          const result = await executeModelForgeCommand(commandId);
+          console.log("ModelForge command executed:", commandId, result);
+          showCommandFeedback(commandId, result, false);
+        } catch (err) {
+          console.error("ModelForge command execution failed:", commandId, err);
+          showCommandFeedback(commandId, err instanceof Error ? err : new Error(String(err)), true);
+        } finally {
+          event?.completed?.();
+        }
+      }
+
+      window.ModelForgeFunctionFile = {
+        getHostForCommand,
+        getSidecarToken,
+        getFeedbackMessage,
+        showCommandFeedback,
+        executeModelForgeCommand,
+        onExecute,
+      };
+
+      if (typeof Office !== "undefined") {
+        Office.onReady(() => {
+          console.log("ModelForge function-file ready");
+        });
+
+        Office.actions.associate("onExecute", onExecute);
+      } else {
+        console.warn("Office.js is not available; ModelForge function-file handlers were not registered.");
+      }
+    })();
   </script>
 </body>
 </html>

@@ -13,21 +13,22 @@
   },
   "dependencies": {
     "@fluentui/react-components": "^9.56.0",
+    "fflate": "^0.8.3",
     "fuse.js": "^7.4.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "zustand": "^5.0.2"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/react": "^16.0.0",
     "@types/office-js": "^1.0.592",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
     "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^25.0.0",
     "typescript": "^5.7.2",
     "vite": "^6.0.7",
-    "vitest": "^3.0.0",
-    "@testing-library/react": "^16.0.0",
-    "@testing-library/jest-dom": "^6.0.0",
-    "jsdom": "^25.0.0"
+    "vitest": "^3.0.0"
   }
 }

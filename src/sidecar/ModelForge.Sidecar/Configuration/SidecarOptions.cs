@@ -17,4 +17,10 @@ public sealed class SidecarOptions
 
     /// <summary>后端请求超时（秒）。</summary>
     public int TimeoutSeconds { get; set; } = 10;
+
+    /// <summary>Sidecar 调用 Backend 服务级端点的共享令牌；为空时禁用服务级读取。</summary>
+    public string ServiceToken { get; set; } = string.Empty;
+
+    /// <summary>保护 Sidecar 本地 /api/* 端点的共享令牌；为空时保持开发兼容模式。</summary>
+    public string LocalApiToken { get; set; } = string.Empty;
 }

@@ -1,5 +1,15 @@
 ﻿import type {
   ApiEnvelope,
+  AdminDiagnosticsResponse,
+  AdminAuditRetentionRequest,
+  AdminAuditRetentionResponse,
+  AdminAuditEventsResponse,
+  AdminAuditEventsQuery,
+  AdminAuditSummaryResponse,
+  AdminRolesResponse,
+  AdminUserCreateRequest,
+  AdminUserResponse,
+  AdminUserToggleResponse,
   CommandDefinition,
   CommandDispatchRequest,
   CommandDispatchResponse,
@@ -8,6 +18,9 @@
   CreateLinkMetadataRequest,
   DictionaryCheckRequest,
   DictionaryCheckResponse,
+  DictionaryExportResponse,
+  DictionaryImportRequest,
+  DictionaryImportResponse,
   DictionaryTerm,
   HealthResponse,
   LinkMetadata,
@@ -18,6 +31,20 @@
 import { useAuthStore } from './authStore';
 
 const DEFAULT_BACKEND_URL = import.meta.env.VITE_MODELFORGE_API_URL ?? 'http://localhost:5095';
+
+function buildQueryString(query: object): string {
+  const params = new URLSearchParams();
+  Object.entries(query as Record<string, unknown>).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '') {
+      return;
+    }
+
+    params.set(key, String(value));
+  });
+
+  const payload = params.toString();
+  return payload ? `?${payload}` : '';
+}
 
 export class ApiClient {
   constructor(private readonly baseUrl: string = DEFAULT_BACKEND_URL) {}
@@ -71,6 +98,62 @@ export class ApiClient {
   }
 
   // ═══════════════════════════════════════════════════════
+  //  Admin
+  // ═══════════════════════════════════════════════════════
+
+  async getAdminUsers() {
+    return this.get<AdminUserResponse[]>('/api/admin/users');
+  }
+
+  async createAdminUser(req: AdminUserCreateRequest) {
+    return this.post<AdminUserResponse>('/api/admin/users', req);
+  }
+
+  async toggleAdminUser(userId: string) {
+    return this.put<AdminUserToggleResponse>(`/api/admin/users/${encodeURIComponent(userId)}/toggle`, {});
+  }
+
+  async getAdminRoles() {
+    return this.get<AdminRolesResponse>('/api/admin/roles');
+  }
+
+  async getAdminAuditEvents(query: AdminAuditEventsQuery = { count: 100 }) {
+    return this.get<AdminAuditEventsResponse>(`/api/admin/audit-events${buildQueryString(query)}`);
+  }
+
+  async getAdminAuditSummary(hours = 168, query: AdminAuditEventsQuery = {}) {
+    return this.get<AdminAuditSummaryResponse>(`/api/admin/audit-events/summary${buildQueryString({ ...query, hours } as AdminAuditEventsQuery & { hours: number })}`);
+  }
+
+  async downloadAdminAuditCsv(query: AdminAuditEventsQuery = { count: 500 }) {
+    const response = await fetch(`${this.baseUrl}/api/admin/audit-events/export${buildQueryString(query)}`, {
+      headers: this.buildHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+    return response.blob();
+  }
+
+  async applyAdminAuditRetention(req: AdminAuditRetentionRequest) {
+    return this.post<AdminAuditRetentionResponse>('/api/admin/audit-events/retention', req);
+  }
+
+  async getAdminDiagnostics() {
+    return this.get<AdminDiagnosticsResponse>('/api/admin/diagnostics');
+  }
+
+  async downloadAdminDiagnosticsBundle() {
+    const response = await fetch(`${this.baseUrl}/api/admin/diagnostics/bundle`, {
+      headers: this.buildHeaders(),
+    });
+    if (!response.ok) {
+      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
+    }
+    return response.blob();
+  }
+
+  // ═══════════════════════════════════════════════════════
   //  Corporate Dictionary
   // ═══════════════════════════════════════════════════════
 
@@ -88,6 +171,14 @@ export class ApiClient {
 
   async checkDictionaryText(req: DictionaryCheckRequest) {
     return this.post<DictionaryCheckResponse>('/api/dictionary/check', req);
+  }
+
+  async exportDictionaryTerms() {
+    return this.get<DictionaryExportResponse>('/api/dictionary/export');
+  }
+
+  async importDictionaryTerms(req: DictionaryImportRequest) {
+    return this.post<DictionaryImportResponse>('/api/dictionary/import', req);
   }
 
   // ═══════════════════════════════════════════════════════
@@ -112,10 +203,7 @@ export class ApiClient {
 
   async login(username: string, password: string) {
     const body = { username, password };
-    return this.postRaw<{ token: string; userId: string; username: string; role: string; expiresAt: string }>(
-      '/api/auth/login',
-      body,
-    );
+    return this.post<{ token: string; userId: string; username: string; role: string; expiresAt: string }>('/api/auth/login', body);
   }
 
   // ═══════════════════════════════════════════════════════
@@ -155,18 +243,6 @@ export class ApiClient {
     return this.unwrap<T>(response);
   }
 
-  private async postRaw<T>(path: string, body: unknown): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${path}`, {
-      method: 'POST',
-      headers: this.buildHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify(body),
-    });
-    if (!response.ok) {
-      throw new Error(`Request failed: ${response.status} ${response.statusText}`);
-    }
-    return response.json();
-  }
-
   private async unwrap<T>(response: Response): Promise<T> {
     if (!response.ok) {
       throw new Error(`Request failed: ${response.status} ${response.statusText}`);
@@ -175,7 +251,7 @@ export class ApiClient {
     if (envelope.error) {
       throw new Error(envelope.error);
     }
-    if (!envelope.data) {
+    if (envelope.data === undefined) {
       throw new Error('Backend response missing data field.');
     }
     return envelope.data;

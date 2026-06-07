@@ -1,6 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
-import { Button, Textarea, Text, Select, Badge } from '@fluentui/react-components';
+import { useEffect, useRef, useState } from 'react';
+import { Badge, Button, Text, Textarea } from '@fluentui/react-components';
 import { apiClient } from '../services/apiClient';
+import { recordUiAction } from '../services/uiAudit';
 import type { DictionaryCheckResponse } from '../types/contracts';
 
 type AiwaMode = 'summarize' | 'elaborate' | 'rephrase' | 'proofread' | 'translate';
@@ -21,16 +22,11 @@ const MODE_LABELS: Record<AiwaMode, string> = {
   translate: '翻译',
 };
 
-/**
- * AIWA (AI Writing Assistant) Chat 前端。
- * 自然语言交互，支持 5 种模式。
- * 当前使用本地 mock 响应；生产环境通过后端桥接调用 LLM API。
- */
 export function AiwaChat() {
   const [messages, setMessages] = useState<Message[]>([{
     id: 'welcome',
     role: 'assistant',
-    content: '你好！我是 ModelForge AI 写作助手 (AIWA)。选择模式后在输入框中输入文本，我可以帮你总结、展开、改写、校对或翻译。',
+    content: '你好，我是 ModelForge AI 写作助手（AIWA）。选择模式后输入文本，我可以帮你总结、展开、改写、校对或翻译。',
     timestamp: new Date().toISOString(),
   }]);
   const [input, setInput] = useState('');
@@ -39,13 +35,19 @@ export function AiwaChat() {
   const [dictionaryEnabled, setDictionaryEnabled] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const send = async () => {
     const text = input.trim();
     if (!text) return;
+    recordUiAction({
+      action: 'aiwa.send',
+      metadata: { mode, length: text.length, dictionaryEnabled },
+    });
 
-    const userMsg: Message = {
+    const userMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
       content: text,
@@ -53,15 +55,15 @@ export function AiwaChat() {
       timestamp: new Date().toISOString(),
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setLoading(true);
 
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise((resolve) => setTimeout(resolve, 800));
     const mockResponse = generateMockResponse(text, mode);
     const response = await applyDictionaryGuardrails(mockResponse, dictionaryEnabled);
 
-    setMessages(prev => [...prev, {
+    setMessages((prev) => [...prev, {
       id: crypto.randomUUID(),
       role: 'assistant',
       content: response,
@@ -70,16 +72,15 @@ export function AiwaChat() {
     setLoading(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
       void send();
     }
   };
 
   return (
     <div className="aiwa-container">
-      {/* Header */}
       <div className="aiwa-header">
         <Text weight="bold" size={500}>AIWA</Text>
         <Badge appearance="tint" color="brand">本地 Mock</Badge>
@@ -88,48 +89,51 @@ export function AiwaChat() {
         </Badge>
       </div>
 
-      {/* Mode Selector */}
       <div className="aiwa-modes">
-        {(Object.keys(MODE_LABELS) as AiwaMode[]).map(m => (
+        {(Object.keys(MODE_LABELS) as AiwaMode[]).map((item) => (
           <button
-            key={m}
-            className={`aiwa-mode-btn${mode === m ? ' active' : ''}`}
-            onClick={() => setMode(m)}
+            key={item}
+            className={`aiwa-mode-btn${mode === item ? ' active' : ''}`}
+            onClick={() => {
+              recordUiAction({ action: 'aiwa.mode.change', metadata: { mode: item } });
+              setMode(item);
+            }}
           >
-            {MODE_LABELS[m]}
+            {MODE_LABELS[item]}
           </button>
         ))}
         <button
           className={`aiwa-mode-btn${dictionaryEnabled ? ' active' : ''}`}
-          onClick={() => setDictionaryEnabled(prev => !prev)}
+          onClick={() => {
+            recordUiAction({ action: 'aiwa.dictionary.toggle', metadata: { enabled: !dictionaryEnabled } });
+            setDictionaryEnabled((prev) => !prev);
+          }}
         >
           术语检查
         </button>
       </div>
 
-      {/* Messages */}
       <div className="aiwa-messages">
-        {messages.map(msg => (
-          <div key={msg.id} className={`aiwa-msg ${msg.role}`}>
+        {messages.map((message) => (
+          <div key={message.id} className={`aiwa-msg ${message.role}`}>
             <div className="aiwa-msg-header">
               <Text size={100} weight="semibold">
-                {msg.role === 'user' ? '你' : 'AIWA'}
-                {msg.mode && ` · ${MODE_LABELS[msg.mode]}`}
+                {message.role === 'user' ? '你' : 'AIWA'}
+                {message.mode && ` · ${MODE_LABELS[message.mode]}`}
               </Text>
             </div>
-            <Text>{msg.content}</Text>
+            <Text>{message.content}</Text>
           </div>
         ))}
         {loading && <div className="aiwa-msg assistant"><Text>AIWA 思考中...</Text></div>}
         <div ref={endRef} />
       </div>
 
-      {/* Input */}
       <div className="aiwa-input-area">
         <Textarea
           placeholder={`输入文本，AIWA 将帮你${MODE_LABELS[mode]}...`}
           value={input}
-          onChange={(_, d) => setInput(d.value)}
+          onChange={(_, data) => setInput(data.value)}
           onKeyDown={handleKeyDown}
           rows={3}
           resize="vertical"
@@ -142,8 +146,6 @@ export function AiwaChat() {
   );
 }
 
-// ─── Mock Response Generator ──────────────────────────────────────
-
 function generateMockResponse(text: string, mode: AiwaMode): string {
   switch (mode) {
     case 'summarize':
@@ -151,13 +153,13 @@ function generateMockResponse(text: string, mode: AiwaMode): string {
     case 'elaborate':
       return `📖 **展开 (Mock)**\n\n基于 "${text.substring(0, 30)}..." 的详细阐述：\n\n1. 背景说明\n2. 详细分析\n3. 示例与推导\n4. 结论\n\n> ⚠️ 当前为本地 Mock 响应。`;
     case 'rephrase':
-      return `✏️ **改写 (Mock)**\n\n原文: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"\n\n改写版本 (更正式):\n> 待 LLM API 接入后提供真实改写。\n\n改写版本 (更简洁):\n> 待 LLM API 接入后提供真实改写。`;
+      return `✏️ **改写 (Mock)**\n\n原文: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"\n\n改写版本（更正式）:\n> 待 LLM API 接入后提供真实改写。\n\n改写版本（更简洁）:\n> 待 LLM API 接入后提供真实改写。`;
     case 'proofread':
       return `🔍 **校对 (Mock)**\n\n对 "${text.substring(0, 50)}..." 的校对结果：\n\n- ✅ 整体结构合理\n- ⚠️ 可能存在的语法问题\n- 💡 用词建议\n\n> ⚠️ 当前为本地 Mock 响应。`;
     case 'translate':
       return `🌐 **翻译 (Mock)**\n\n源文本: "${text.substring(0, 50)}..."\n\nEnglish:\n> Mock translation — LLM API connection required.\n\n> ⚠️ 当前为本地 Mock 响应。`;
     default:
-      return '未知模式。请选择总结/展开/改写/校对/翻译。';
+      return '未知模式。请选择总结 / 展开 / 改写 / 校对 / 翻译。';
   }
 }
 
@@ -178,10 +180,15 @@ async function applyDictionaryGuardrails(text: string, enabled: boolean) {
 }
 
 function formatDictionaryResult(check: DictionaryCheckResponse) {
-  const items = check.matches.slice(0, 5).map(match => {
+  const items = check.matches.slice(0, 5).map((match) => {
     const suggestion = match.suggestion ? ` → 建议替换为「${match.suggestion}」` : '';
     return `- ${match.matchedText}（规则：${match.term}，位置：${match.position}）${suggestion}`;
   });
   const suffix = check.matches.length > 5 ? `\n- 另有 ${check.matches.length - 5} 项命中未展示` : '';
   return `⚠️ **Corporate Dictionary**：命中 ${check.matchCount} 项\n${items.join('\n')}${suffix}`;
 }
+
+export const __aiwaChatTestables = {
+  generateMockResponse,
+  formatDictionaryResult,
+};

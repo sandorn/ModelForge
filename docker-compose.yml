@@ -35,6 +35,7 @@ services:
       DatabaseProvider: postgres
       ConnectionStrings__ModelForge: Host=postgres;Database=modelforge;Username=modelforge;Password=${MODELFORGE_DB_PASSWORD:-modelforge-dev}
       Jwt__SecretKey: ${MODELFORGE_JWT_SECRET:-ModelForge-Production-Secret-ChangeMe-Min32Chars!!}
+      ModelForge__ServiceToken: ${MODELFORGE_SERVICE_TOKEN:-}
     ports:
       - "5095:8080"
     depends_on:
@@ -55,6 +56,10 @@ services:
     build:
       context: .
       dockerfile: docker/Web.Dockerfile
+      args:
+        VITE_MODELFORGE_API_URL: ${VITE_MODELFORGE_API_URL:-http://localhost:5095}
+        VITE_MODELFORGE_SIDECAR_URL: ${VITE_MODELFORGE_SIDECAR_URL:-http://localhost:5200}
+        VITE_MODELFORGE_SIDECAR_TOKEN: ${VITE_MODELFORGE_SIDECAR_TOKEN:-}
     restart: unless-stopped
     ports:
       - "5173:80"

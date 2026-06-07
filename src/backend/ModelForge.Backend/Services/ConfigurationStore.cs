@@ -23,7 +23,8 @@ public sealed class InMemoryConfigurationStore : IConfigurationStore
             {
                 ["TelemetryEnabled"] = "false",
                 ["DefaultLanguage"] = "zh-CN",
-                ["BackendBridgeMode"] = "local-development"
+                ["BackendBridgeMode"] = "local-development",
+                ["AuditRetentionDays"] = "90"
             }
         };
     }

@@ -56,22 +56,35 @@ Get-ChildItem $out\File
 
 Run these commands from an elevated PowerShell session.
 
+Recommended admin regression:
+
+```powershell
+.\scripts\test-msi-admin.ps1
+```
+
+The script resolves `ModelForge.msi` to an absolute path, writes logs under
+`artifacts\manual-e2e\`, verifies both Windows Services and health endpoints,
+then uninstalls the package unless `-SkipUninstall` is provided.
+
 Interactive install:
 
 ```powershell
-msiexec /i ModelForge.msi /l*v install.log
+$msi = (Resolve-Path ".\ModelForge.msi").Path
+msiexec /i $msi /l*v "$PWD\install.log"
 ```
 
 Quiet install:
 
 ```powershell
-msiexec /i ModelForge.msi /quiet /l*v install.log
+$msi = (Resolve-Path ".\ModelForge.msi").Path
+msiexec /i $msi /quiet /l*v "$PWD\install.log"
 ```
 
 Uninstall:
 
 ```powershell
-msiexec /x ModelForge.msi /l*v uninstall.log
+$msi = (Resolve-Path ".\ModelForge.msi").Path
+msiexec /x $msi /l*v "$PWD\uninstall.log"
 ```
 
 Post-install checks:

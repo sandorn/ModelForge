@@ -6,12 +6,14 @@ namespace ModelForge.Sidecar.Tests;
 public class ShortcutRegistryTests
 {
     [Fact]
-    public void RegisterDefaults_Returns20Shortcuts()
+    public void RegisterDefaults_ReturnsAllImplementedCommandShortcuts()
     {
         var registry = new ShortcutRegistry();
         registry.RegisterDefaults();
         var all = registry.GetAll();
-        Assert.Equal(21, all.Count);
+        Assert.Equal(39, all.Count);
+        Assert.Contains(all, item => item.CommandId == PptCommandIds.DeckCheck);
+        Assert.Contains(all, item => item.CommandId == WordCommandIds.BuildDueDiligence);
     }
 
     [Fact]
@@ -60,7 +62,7 @@ public class ShortcutRegistryTests
     {
         var registry = new ShortcutRegistry();
         registry.RegisterDefaults();
-        Assert.Equal(21, registry.GetAll().Count);
+        Assert.Equal(39, registry.GetAll().Count);
 
         var newShortcuts = new[]
         {
@@ -72,6 +74,42 @@ public class ShortcutRegistryTests
         Assert.Equal(2, registry.GetAll().Count);
         Assert.NotNull(registry.FindByChord("Ctrl+1"));
         Assert.Null(registry.FindByChord("Ctrl+Alt+R"));
+    }
+
+    [Fact]
+    public void ReplaceAll_DuplicateChord_DoesNotClearExistingShortcuts()
+    {
+        var registry = new ShortcutRegistry();
+        registry.RegisterDefaults();
+
+        Assert.Throws<InvalidOperationException>(() =>
+            registry.ReplaceAll(new[]
+            {
+                new ShortcutDefinition("custom.1", "Custom 1", "Ctrl+1"),
+                new ShortcutDefinition("custom.2", "Custom 2", "Ctrl+1"),
+            }));
+
+        Assert.Equal(39, registry.GetAll().Count);
+        Assert.NotNull(registry.FindByChord("Ctrl+Alt+R"));
+    }
+
+    [Fact]
+    public void RegisterDefaults_IsIdempotent()
+    {
+        var registry = new ShortcutRegistry();
+        registry.RegisterDefaults();
+        registry.RegisterDefaults();
+
+        Assert.Equal(39, registry.GetAll().Count);
+    }
+
+    [Fact]
+    public void RegisterDefaults_HasNoDuplicateChordsOrCommandIds()
+    {
+        var shortcuts = DefaultShortcutMap.Create();
+
+        Assert.Equal(shortcuts.Count, shortcuts.Select(item => item.Shortcut).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.Equal(shortcuts.Count, shortcuts.Select(item => item.CommandId).Distinct(StringComparer.OrdinalIgnoreCase).Count());
     }
 
     [Fact]

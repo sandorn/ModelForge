@@ -9,6 +9,9 @@ namespace ModelForge.E2ETests;
 /// </summary>
 public class ServiceFixture : IDisposable
 {
+    public const string TestServiceToken = "ModelForge-E2E-ServiceToken-ChangeMe";
+    public const string TestSidecarLocalApiToken = "ModelForge-E2E-SidecarLocalApiToken-ChangeMe";
+
     private Process? _backendProcess;
     private Process? _sidecarProcess;
     private Process? _excelProcess;
@@ -27,6 +30,7 @@ public class ServiceFixture : IDisposable
     {
         BackendClient = new HttpClient { BaseAddress = new Uri("http://localhost:5095"), Timeout = TimeSpan.FromSeconds(10) };
         SidecarClient = new HttpClient { BaseAddress = new Uri("http://localhost:5200"), Timeout = TimeSpan.FromSeconds(10) };
+        SidecarClient.DefaultRequestHeaders.Add("X-ModelForge-Sidecar-Token", TestSidecarLocalApiToken);
 
         StartBackend();
         StartSidecar();
@@ -47,6 +51,7 @@ public class ServiceFixture : IDisposable
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
+            psi.Environment["ModelForge__ServiceToken"] = TestServiceToken;
             _backendProcess = Process.Start(psi)!;
             Thread.Sleep(ServiceStartupMs);
 
@@ -71,6 +76,8 @@ public class ServiceFixture : IDisposable
                 UseShellExecute = false,
                 CreateNoWindow = true,
             };
+            psi.Environment["Sidecar__ServiceToken"] = TestServiceToken;
+            psi.Environment["Sidecar__LocalApiToken"] = TestSidecarLocalApiToken;
             _sidecarProcess = Process.Start(psi)!;
             Thread.Sleep(ServiceStartupMs);
 

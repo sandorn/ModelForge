@@ -43,69 +43,64 @@
           <!-- ModelForge Tab on Ribbon -->
           <ExtensionPoint xsi:type="PrimaryCommandSurface">
             <CustomTab id="ModelForge.Tab">
-              <Group id="ModelForge.Tab.Group.Label">
-                <Label resid="TabLabel" />
-
-                <!-- Bridge Group -->
-                <Group id="ModelForge.BridgeGroup">
-                  <Label resid="BridgeGroup.Label" />
-                  <Icon>
-                    <bt:Image size="16" resid="Icon.16x16" />
-                    <bt:Image size="32" resid="Icon.32x32" />
-                    <bt:Image size="80" resid="Icon.80x80" />
-                  </Icon>
-                  <Control xsi:type="Button" id="ModelForge.OpenTaskPane">
-                    <Label resid="TaskPaneButton.Label" />
-                    <Supertip><Title resid="TaskPaneButton.Label" /><Description resid="TaskPaneButton.Tooltip" /></Supertip>
-                    <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
-                    <Action xsi:type="ShowTaskpane"><TaskpaneId>ModelForge.TaskPane</TaskpaneId><SourceLocation resid="TaskPane.Url" /></Action>
-                  </Control>
-                </Group>
-
-                <!-- Power Tools Group -->
-                <Group id="ModelForge.PowerToolsGroup">
-                  <Label resid="PowerToolsGroup.Label" />
+              <!-- Bridge Group -->
+              <Group id="ModelForge.BridgeGroup">
+                <Label resid="BridgeGroup.Label" />
+                <Icon>
+                  <bt:Image size="16" resid="Icon.16x16" />
+                  <bt:Image size="32" resid="Icon.32x32" />
+                  <bt:Image size="80" resid="Icon.80x80" />
+                </Icon>
+                <Control xsi:type="Button" id="ModelForge.OpenTaskPane">
+                  <Label resid="TaskPaneButton.Label" />
+                  <Supertip><Title resid="TaskPaneButton.Label" /><Description resid="TaskPaneButton.Tooltip" /></Supertip>
                   <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
-                  <Control xsi:type="Button" id="excel.fill-right"><Label resid="FillRight.Label" /><Supertip><Title resid="FillRight.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.fill-down"><Label resid="FillDown.Label" /><Supertip><Title resid="FillDown.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.wrap-iferror"><Label resid="WrapIfError.Label" /><Supertip><Title resid="WrapIfError.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.insert-statistics"><Label resid="InsertStats.Label" /><Supertip><Title resid="InsertStats.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.apply-finance-format"><Label resid="FinanceFormat.Label" /><Supertip><Title resid="FinanceFormat.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.toggle-sign"><Label resid="ToggleSign.Label" /><Supertip><Title resid="ToggleSign.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.insert-dcf-template"><Label resid="DcfTemplate.Label" /><Supertip><Title resid="DcfTemplate.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                </Group>
+                  <Action xsi:type="ShowTaskpane"><TaskpaneId>ModelForge.TaskPane</TaskpaneId><SourceLocation resid="TaskPane.Url" /></Action>
+                </Control>
+              </Group>
 
-                <!-- Audit Group -->
-                <Group id="ModelForge.AuditGroup">
-                  <Label resid="AuditGroup.Label" />
-                  <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
-                  <Control xsi:type="Button" id="excel.visualize-inputs"><Label resid="VisualizeInputs.Label" /><Supertip><Title resid="VisualizeInputs.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.visualize-formulas"><Label resid="VisualizeFormulas.Label" /><Supertip><Title resid="VisualizeFormulas.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.visualize-links"><Label resid="VisualizeLinks.Label" /><Supertip><Title resid="VisualizeLinks.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.clear-visualizations"><Label resid="ClearViz.Label" /><Supertip><Title resid="ClearViz.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.model-check"><Label resid="ModelCheck.Label" /><Supertip><Title resid="ModelCheck.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.trace-precedents"><Label resid="TracePrecedents.Label" /><Supertip><Title resid="TracePrecedents.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.trace-dependents"><Label resid="TraceDependents.Label" /><Supertip><Title resid="TraceDependents.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.clear-trace"><Label resid="ClearTrace.Label" /><Supertip><Title resid="ClearTrace.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                </Group>
+              <!-- Power Tools Group -->
+              <Group id="ModelForge.PowerToolsGroup">
+                <Label resid="PowerToolsGroup.Label" />
+                <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
+                <Control xsi:type="Button" id="excel.fill-right"><Label resid="FillRight.Label" /><Supertip><Title resid="FillRight.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.fill-down"><Label resid="FillDown.Label" /><Supertip><Title resid="FillDown.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.wrap-iferror"><Label resid="WrapIfError.Label" /><Supertip><Title resid="WrapIfError.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.insert-statistics"><Label resid="InsertStats.Label" /><Supertip><Title resid="InsertStats.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.apply-finance-format"><Label resid="FinanceFormat.Label" /><Supertip><Title resid="FinanceFormat.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.toggle-sign"><Label resid="ToggleSign.Label" /><Supertip><Title resid="ToggleSign.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.insert-dcf-template"><Label resid="DcfTemplate.Label" /><Supertip><Title resid="DcfTemplate.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+              </Group>
 
-                <!-- Linking Group -->
-                <Group id="ModelForge.LinkingGroup">
-                  <Label resid="LinkingGroup.Label" />
-                  <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
-                  <Control xsi:type="Button" id="excel.link-to-powerpoint"><Label resid="LinkToPPT.Label" /><Supertip><Title resid="LinkToPPT.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.refresh-links"><Label resid="RefreshLinks.Label" /><Supertip><Title resid="RefreshLinks.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                </Group>
+              <!-- Audit Group -->
+              <Group id="ModelForge.AuditGroup">
+                <Label resid="AuditGroup.Label" />
+                <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
+                <Control xsi:type="Button" id="excel.visualize-inputs"><Label resid="VisualizeInputs.Label" /><Supertip><Title resid="VisualizeInputs.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.visualize-formulas"><Label resid="VisualizeFormulas.Label" /><Supertip><Title resid="VisualizeFormulas.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.visualize-links"><Label resid="VisualizeLinks.Label" /><Supertip><Title resid="VisualizeLinks.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.clear-visualizations"><Label resid="ClearViz.Label" /><Supertip><Title resid="ClearViz.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.model-check"><Label resid="ModelCheck.Label" /><Supertip><Title resid="ModelCheck.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.trace-precedents"><Label resid="TracePrecedents.Label" /><Supertip><Title resid="TracePrecedents.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.trace-dependents"><Label resid="TraceDependents.Label" /><Supertip><Title resid="TraceDependents.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.clear-trace"><Label resid="ClearTrace.Label" /><Supertip><Title resid="ClearTrace.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+              </Group>
 
-                <!-- Workbook Group -->
-                <Group id="ModelForge.WorkbookGroup">
-                  <Label resid="WorkbookGroup.Label" />
-                  <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
-                  <Control xsi:type="Button" id="excel.optimize-workbook"><Label resid="Optimize.Label" /><Supertip><Title resid="Optimize.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.prepare-to-share"><Label resid="PrepareToShare.Label" /><Supertip><Title resid="PrepareToShare.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="excel.names-manager"><Label resid="NamesManager.Label" /><Supertip><Title resid="NamesManager.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                </Group>
+              <!-- Linking Group -->
+              <Group id="ModelForge.LinkingGroup">
+                <Label resid="LinkingGroup.Label" />
+                <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
+                <Control xsi:type="Button" id="excel.link-to-powerpoint"><Label resid="LinkToPPT.Label" /><Supertip><Title resid="LinkToPPT.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.refresh-links"><Label resid="RefreshLinks.Label" /><Supertip><Title resid="RefreshLinks.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+              </Group>
 
+              <!-- Workbook Group -->
+              <Group id="ModelForge.WorkbookGroup">
+                <Label resid="WorkbookGroup.Label" />
+                <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
+                <Control xsi:type="Button" id="excel.optimize-workbook"><Label resid="Optimize.Label" /><Supertip><Title resid="Optimize.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.prepare-to-share"><Label resid="PrepareToShare.Label" /><Supertip><Title resid="PrepareToShare.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="excel.names-manager"><Label resid="NamesManager.Label" /><Supertip><Title resid="NamesManager.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
               </Group>
               <Label resid="TabLabel" />
             </CustomTab>
@@ -115,19 +110,26 @@
 
       <Host xsi:type="Presentation">
         <DesktopFormFactor>
+          <FunctionFile resid="FunctionFile.Url" />
+
           <ExtensionPoint xsi:type="PrimaryCommandSurface">
             <CustomTab id="ModelForge.PPT.Tab">
-              <Group id="ModelForge.PPT.Tab.Main">
-                <Label resid="PPT.TabLabel" />
-                <Group id="ModelForge.PPT.Tools">
-                  <Label resid="PPT.ToolsGroup.Label" />
-                  <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
-                  <Control xsi:type="Button" id="ppt.generate-agenda"><Label resid="PPTA.Agenda.Label" /><Supertip><Title resid="PPTA.Agenda.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="ppt.deck-check"><Label resid="PPTA.DeckCheck.Label" /><Supertip><Title resid="PPTA.DeckCheck.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="ppt.align-left"><Label resid="PPTA.AlignLeft.Label" /><Supertip><Title resid="PPTA.AlignLeft.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="ppt.distribute-horizontal"><Label resid="PPTA.DistH.Label" /><Supertip><Title resid="PPTA.DistH.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="ppt.unify-size"><Label resid="PPTA.Unify.Label" /><Supertip><Title resid="PPTA.Unify.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                </Group>
+              <Group id="ModelForge.PPT.Tools">
+                <Label resid="PPT.ToolsGroup.Label" />
+                <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
+                <Control xsi:type="Button" id="ppt.generate-agenda"><Label resid="PPTA.Agenda.Label" /><Supertip><Title resid="PPTA.Agenda.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="ppt.deck-check"><Label resid="PPTA.DeckCheck.Label" /><Supertip><Title resid="PPTA.DeckCheck.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="ppt.align-left"><Label resid="PPTA.AlignLeft.Label" /><Supertip><Title resid="PPTA.AlignLeft.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="ppt.align-center"><Label resid="PPTA.AlignCenter.Label" /><Supertip><Title resid="PPTA.AlignCenter.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="ppt.align-right"><Label resid="PPTA.AlignRight.Label" /><Supertip><Title resid="PPTA.AlignRight.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="ppt.align-top"><Label resid="PPTA.AlignTop.Label" /><Supertip><Title resid="PPTA.AlignTop.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="ppt.align-middle"><Label resid="PPTA.AlignMiddle.Label" /><Supertip><Title resid="PPTA.AlignMiddle.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="ppt.align-bottom"><Label resid="PPTA.AlignBottom.Label" /><Supertip><Title resid="PPTA.AlignBottom.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="ppt.distribute-horizontal"><Label resid="PPTA.DistH.Label" /><Supertip><Title resid="PPTA.DistH.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="ppt.distribute-vertical"><Label resid="PPTA.DistV.Label" /><Supertip><Title resid="PPTA.DistV.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="ppt.unify-width"><Label resid="PPTA.UnifyWidth.Label" /><Supertip><Title resid="PPTA.UnifyWidth.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="ppt.unify-height"><Label resid="PPTA.UnifyHeight.Label" /><Supertip><Title resid="PPTA.UnifyHeight.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="ppt.unify-size"><Label resid="PPTA.Unify.Label" /><Supertip><Title resid="PPTA.Unify.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
               </Group>
               <Label resid="PPT.TabLabel" />
             </CustomTab>
@@ -136,19 +138,18 @@
       </Host>
       <Host xsi:type="Document">
         <DesktopFormFactor>
+          <FunctionFile resid="FunctionFile.Url" />
+
           <ExtensionPoint xsi:type="PrimaryCommandSurface">
             <CustomTab id="ModelForge.Word.Tab">
-              <Group id="ModelForge.Word.Tab.Main">
-                <Label resid="Word.TabLabel" />
-                <Group id="ModelForge.Word.Tools">
-                  <Label resid="Word.ToolsGroup.Label" />
-                  <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
-                  <Control xsi:type="Button" id="word.build-due-diligence"><Label resid="WordA.DD.Label" /><Supertip><Title resid="WordA.DD.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="word.build-cim"><Label resid="WordA.CIM.Label" /><Supertip><Title resid="WordA.CIM.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="word.build-management-presentation"><Label resid="WordA.MP.Label" /><Supertip><Title resid="WordA.MP.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="word.embed-excel-range"><Label resid="WordA.Embed.Label" /><Supertip><Title resid="WordA.Embed.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                  <Control xsi:type="Button" id="word.refresh-links"><Label resid="WordA.Refresh.Label" /><Supertip><Title resid="WordA.Refresh.Label" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
-                </Group>
+              <Group id="ModelForge.Word.Tools">
+                <Label resid="Word.ToolsGroup.Label" />
+                <Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon>
+                <Control xsi:type="Button" id="word.build-due-diligence"><Label resid="WordA.DD.Label" /><Supertip><Title resid="WordA.DD.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="word.build-cim"><Label resid="WordA.CIM.Label" /><Supertip><Title resid="WordA.CIM.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="word.build-management-presentation"><Label resid="WordA.MP.Label" /><Supertip><Title resid="WordA.MP.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="word.embed-excel-range"><Label resid="WordA.Embed.Label" /><Supertip><Title resid="WordA.Embed.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
+                <Control xsi:type="Button" id="word.refresh-links"><Label resid="WordA.Refresh.Label" /><Supertip><Title resid="WordA.Refresh.Label" /><Description resid="Command.Tooltip" /></Supertip><Icon><bt:Image size="16" resid="Icon.16x16" /><bt:Image size="32" resid="Icon.32x32" /><bt:Image size="80" resid="Icon.80x80" /></Icon><Action xsi:type="ExecuteFunction"><FunctionName>onExecute</FunctionName></Action></Control>
               </Group>
               <Label resid="Word.TabLabel" />
             </CustomTab>
@@ -201,7 +202,15 @@
         <bt:String id="PPTA.Agenda.Label" DefaultValue="生成目录" />
         <bt:String id="PPTA.DeckCheck.Label" DefaultValue="Deck Check" />
         <bt:String id="PPTA.AlignLeft.Label" DefaultValue="左对齐" />
+        <bt:String id="PPTA.AlignCenter.Label" DefaultValue="水平居中" />
+        <bt:String id="PPTA.AlignRight.Label" DefaultValue="右对齐" />
+        <bt:String id="PPTA.AlignTop.Label" DefaultValue="顶端对齐" />
+        <bt:String id="PPTA.AlignMiddle.Label" DefaultValue="垂直居中" />
+        <bt:String id="PPTA.AlignBottom.Label" DefaultValue="底端对齐" />
         <bt:String id="PPTA.DistH.Label" DefaultValue="水平均分" />
+        <bt:String id="PPTA.DistV.Label" DefaultValue="垂直均分" />
+        <bt:String id="PPTA.UnifyWidth.Label" DefaultValue="统一宽度" />
+        <bt:String id="PPTA.UnifyHeight.Label" DefaultValue="统一高度" />
         <bt:String id="PPTA.Unify.Label" DefaultValue="统一尺寸" />
         <bt:String id="Word.TabLabel" DefaultValue="ModelForge" />
         <bt:String id="Word.ToolsGroup.Label" DefaultValue="Word 工具" />
@@ -214,6 +223,7 @@
       </bt:ShortStrings>
       <bt:LongStrings>
         <bt:String id="TaskPaneButton.Tooltip" DefaultValue="打开 ModelForge 任务窗格" />
+        <bt:String id="Command.Tooltip" DefaultValue="执行 ModelForge 命令。" />
         <bt:String id="GetStarted.Description" DefaultValue="ModelForge 已就绪 — 使用 Ribbon 按钮执行建模操作。" />
       </bt:LongStrings>
     </Resources>

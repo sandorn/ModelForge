@@ -13,20 +13,77 @@ public static class IfErrorWrapper
     /// <returns>操作结果描述。</returns>
     public static string Execute(dynamic excelApp, string fallbackValue = "0")
     {
-        dynamic selection = excelApp.Selection;
+        if (excelApp == null)
+        {
+            return "Excel 未运行。请先启动 Excel。";
+        }
+
+        dynamic? selection;
+        try
+        {
+            selection = excelApp.Selection;
+        }
+        catch
+        {
+            selection = null;
+        }
+
+        if (selection == null)
+        {
+            return "未选中 Excel 单元格区域。请先在工作表中选择包含公式的单元格。";
+        }
+
         int wrappedCount = 0;
         int skippedCount = 0;
+        int totalCount;
 
-        foreach (dynamic cell in selection)
+        try
         {
-            // 跳过无公式的单元格
-            if (!cell.HasFormula)
+            totalCount = Convert.ToInt32(selection.CountLarge);
+        }
+        catch
+        {
+            totalCount = Convert.ToInt32(selection.Count);
+        }
+
+        for (var i = 1; i <= totalCount; i++)
+        {
+            dynamic? cell;
+            try
+            {
+                cell = selection.Cells[i];
+            }
+            catch
             {
                 skippedCount++;
                 continue;
             }
 
-            string originalFormula = cell.Formula as string ?? string.Empty;
+            if (cell == null)
+            {
+                skippedCount++;
+                continue;
+            }
+
+            // 跳过无公式的单元格
+            bool hasFormula;
+            try
+            {
+                hasFormula = Convert.ToBoolean(cell.HasFormula);
+            }
+            catch
+            {
+                skippedCount++;
+                continue;
+            }
+
+            if (!hasFormula)
+            {
+                skippedCount++;
+                continue;
+            }
+
+            string originalFormula = Convert.ToString(cell.Formula) ?? string.Empty;
 
             // 跳过已包裹 IFERROR 的公式
             if (originalFormula.TrimStart().StartsWith("=IFERROR(", StringComparison.OrdinalIgnoreCase))

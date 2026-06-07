@@ -13,4 +13,8 @@
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\backend\ModelForge.Backend\ModelForge.Backend.csproj" />
+    <ProjectReference Include="..\..\..\src\sidecar\ModelForge.Sidecar\ModelForge.Sidecar.csproj" />
+  </ItemGroup>
 </Project>

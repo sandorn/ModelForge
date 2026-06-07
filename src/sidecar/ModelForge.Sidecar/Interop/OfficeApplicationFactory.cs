@@ -28,6 +28,16 @@ public sealed class OfficeApplicationFactory : IDisposable
             var obj = ComRuntime.GetActiveObject(clsid);
             if (obj != null)
             {
+                OfficeComValidationResult validation = ValidateComObject((object)obj, appName);
+                if (!validation.IsSupported)
+                {
+                    _logger.LogWarning(
+                        "{AppName} COM validation failed: {Error}",
+                        appName,
+                        validation.Error);
+                    return null;
+                }
+
                 Track(obj);
                 return obj;
             }
@@ -37,6 +47,36 @@ public sealed class OfficeApplicationFactory : IDisposable
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "无法连接到 {AppName}", appName);
+            return null;
+        }
+    }
+
+    private static OfficeComValidationResult ValidateComObject(object comObject, string appName)
+    {
+        try
+        {
+            dynamic app = comObject;
+            string? name = TryReadString(() => app.Name);
+            string? version = TryReadString(() => app.Version);
+            string? path = TryReadString(() => app.Path);
+
+            return OfficeComValidator.Validate(appName, name, version, path);
+        }
+        catch (Exception ex)
+        {
+            return OfficeComValidationResult.Unsupported(
+                $"无法验证 {appName} COM 对象: {ex.Message}");
+        }
+    }
+
+    private static string? TryReadString(Func<object?> getter)
+    {
+        try
+        {
+            return getter()?.ToString();
+        }
+        catch
+        {
             return null;
         }
     }

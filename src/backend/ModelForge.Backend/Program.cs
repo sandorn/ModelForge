@@ -1,4 +1,6 @@
 ﻿using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -49,6 +51,7 @@ builder.Services.AddCors(options =>
 // ── Persistence ──
 var provider = builder.Configuration.GetValue<string>("DatabaseProvider")?.ToLowerInvariant() ?? "inmemory";
 var connectionString = builder.Configuration.GetConnectionString("ModelForge") ?? "";
+var serviceToken = builder.Configuration.GetValue<string>("ModelForge:ServiceToken") ?? "";
 
 if (provider == "inmemory")
 {
@@ -95,6 +98,7 @@ else
 builder.Services.AddSingleton<ICommandCatalog, CommandCatalog>();
 builder.Services.AddSingleton<ICommandDispatcher, InMemoryCommandDispatcher>();
 builder.Services.AddSingleton<IDictionaryService, InMemoryDictionaryService>();
+builder.Services.AddSingleton<TelemetryPolicy>();
 
 var app = builder.Build();
 
@@ -142,11 +146,26 @@ app.Use(async (context, next) =>
 // ── Auth Endpoints ──
 var auth = app.MapGroup("/api/auth");
 
-auth.MapPost("/login", (HttpContext ctx, LoginRequest request, JwtService jwt, InMemoryUserStore store) =>
+auth.MapPost("/login", async (HttpContext ctx, LoginRequest request, JwtService jwt, InMemoryUserStore store, IAuditSink auditSink) =>
 {
     var user = store.ValidateCredentials(request.Username, request.Password);
     if (user == null)
-        return Results.Unauthorized();
+    {
+        await RecordBackendAuditAsync(
+            ctx,
+            auditSink,
+            logger,
+            "auth.login.failed",
+            AuditSeverity.Warning,
+            actorId: string.IsNullOrWhiteSpace(request.Username) ? "anonymous" : request.Username.Trim(),
+            metadata: new Dictionary<string, string>
+            {
+                ["username"] = request.Username
+            });
+        return Results.Json(
+            ApiEnvelope<object>.Failure("Invalid username or password.", GetTraceId(ctx)),
+            statusCode: StatusCodes.Status401Unauthorized);
+    }
 
     var token = jwt.IssueToken(user.Id, user.Username, user.Role);
     var loginResponse = new LoginResponse
@@ -157,76 +176,386 @@ auth.MapPost("/login", (HttpContext ctx, LoginRequest request, JwtService jwt, I
         Role = user.Role,
         ExpiresAt = DateTime.UtcNow.AddHours(jwtOptions.TokenLifetimeHours)
     };
+    await RecordBackendAuditAsync(
+        ctx,
+        auditSink,
+        logger,
+        "auth.login.succeeded",
+        AuditSeverity.Information,
+        actorId: user.Id,
+        resourceId: user.Id,
+        metadata: new Dictionary<string, string>
+        {
+            ["username"] = user.Username,
+            ["role"] = user.Role
+        });
+
     return Results.Ok(ApiEnvelope<LoginResponse>.Success(loginResponse, GetTraceId(ctx)));
 });
 
 auth.MapGet("/me", (HttpContext ctx, ClaimsPrincipal user, InMemoryUserStore store) =>
 {
     var userId = user.FindFirstValue("sub");
-    if (userId == null) return Results.Unauthorized();
+    if (userId == null)
+        return Results.Json(
+            ApiEnvelope<object>.Failure("Missing user identity.", GetTraceId(ctx)),
+            statusCode: StatusCodes.Status401Unauthorized);
     var identity = store.GetById(userId);
-    if (identity == null) return Results.NotFound();
+    if (identity == null)
+        return Results.NotFound(ApiEnvelope<object>.Failure($"User '{userId}' not found.", GetTraceId(ctx)));
     return Results.Ok(ApiEnvelope<object>.Success(new { identity.Id, identity.Username, identity.Role, identity.IsActive }, GetTraceId(ctx)));
 }).RequireAuthorization();
 
 // ── Admin Endpoints ──
 var admin = app.MapGroup("/api/admin").RequireAuthorization("AdminOnly");
-admin.MapGet("/users", (InMemoryUserStore store) =>
-    Results.Ok(store.GetAll().Select(u => new { u.Id, u.Username, u.Role, u.IsActive, u.CreatedAt })));
-admin.MapPost("/users", (LoginRequest req, InMemoryUserStore store) =>
+admin.MapGet("/users", (HttpContext ctx, InMemoryUserStore store) =>
+    Results.Ok(ApiEnvelope<IReadOnlyCollection<AdminUserResponse>>.Success(
+        store.GetAll().Select(ToAdminUserResponse).ToArray(),
+        GetTraceId(ctx))));
+admin.MapPost("/users", async (HttpContext ctx, AdminUserCreateRequest req, InMemoryUserStore store, IAuditSink auditSink) =>
 {
-    var user = store.AddUser(req.Username, req.Password, "Analyst");
-    return Results.Created($"/api/admin/users/{user.Id}", new { user.Id, user.Username, user.Role });
+    if (string.IsNullOrWhiteSpace(req.Username))
+        return Results.BadRequest(ApiEnvelope<object>.Failure("username is required.", GetTraceId(ctx)));
+    if (string.IsNullOrWhiteSpace(req.Password))
+        return Results.BadRequest(ApiEnvelope<object>.Failure("password is required.", GetTraceId(ctx)));
+
+    var role = string.IsNullOrWhiteSpace(req.Role) ? RoleDefinitions.Analyst : req.Role.Trim();
+    var canonicalRole = RoleDefinitions.AllRoles.FirstOrDefault(r => r.Equals(role, StringComparison.OrdinalIgnoreCase));
+    if (canonicalRole is null)
+        return Results.BadRequest(ApiEnvelope<object>.Failure(
+            $"role must be one of: {string.Join(", ", RoleDefinitions.AllRoles)}.",
+            GetTraceId(ctx)));
+
+    UserIdentity user;
+    try
+    {
+        user = store.AddUser(req.Username, req.Password, canonicalRole);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Conflict(ApiEnvelope<object>.Failure(ex.Message, GetTraceId(ctx)));
+    }
+
+    await RecordBackendAuditAsync(
+        ctx,
+        auditSink,
+        logger,
+        "admin.user.created",
+        AuditSeverity.Information,
+        resourceId: user.Id,
+        metadata: new Dictionary<string, string>
+        {
+            ["username"] = user.Username,
+            ["role"] = user.Role
+        });
+
+    return Results.Created(
+        $"/api/admin/users/{user.Id}",
+        ApiEnvelope<AdminUserResponse>.Success(ToAdminUserResponse(user), GetTraceId(ctx)));
 });
-admin.MapPut("/users/{userId}/toggle", (string userId, InMemoryUserStore store) =>
+admin.MapPut("/users/{userId}/toggle", async (HttpContext ctx, string userId, InMemoryUserStore store, IAuditSink auditSink) =>
 {
     var user = store.GetById(userId);
-    if (user is null) return Results.NotFound();
-    store.SetActive(userId, !user.IsActive);
-    return Results.Ok(new { userId, active = !user.IsActive });
+    if (user is null)
+        return Results.NotFound(ApiEnvelope<object>.Failure($"User '{userId}' not found.", GetTraceId(ctx)));
+    var nextActive = !user.IsActive;
+    store.SetActive(userId, nextActive);
+    await RecordBackendAuditAsync(
+        ctx,
+        auditSink,
+        logger,
+        "admin.user.toggled",
+        AuditSeverity.Information,
+        resourceId: userId,
+        metadata: new Dictionary<string, string>
+        {
+            ["username"] = user.Username,
+            ["active"] = nextActive.ToString()
+        });
+
+    return Results.Ok(ApiEnvelope<AdminUserToggleResponse>.Success(
+        new AdminUserToggleResponse { UserId = userId, Active = nextActive },
+        GetTraceId(ctx)));
 });
-admin.MapGet("/audit-events", async (HttpContext ctx, IAuditSink auditSink, int? count, int? page, int? pageSize) =>
+admin.MapGet("/roles", (HttpContext ctx) =>
+    Results.Ok(ApiEnvelope<AdminRolesResponse>.Success(
+        new AdminRolesResponse
+        {
+            Roles = RoleDefinitions.AllRoles
+                .Select(role => new AdminRolePermissionResponse
+                {
+                    Role = role,
+                    Permissions = RoleDefinitions.GetPermissions(role),
+                    BuiltIn = true
+                })
+                .ToArray()
+        },
+        GetTraceId(ctx))));
+admin.MapGet("/audit-events", async (
+    HttpContext ctx,
+    IAuditSink auditSink,
+    int? count,
+    int? page,
+    int? pageSize,
+    string? eventType,
+    string? actorId,
+    OfficeHost? host,
+    AuditSeverity? severity,
+    string? commandId,
+    string? resourceId,
+    string? search,
+    DateTimeOffset? sinceUtc,
+    DateTimeOffset? untilUtc) =>
 {
-    var effectiveCount = Math.Clamp(count ?? 50, 1, 500);
-    var events = await auditSink.GetRecentAsync(effectiveCount, ctx.RequestAborted);
-    var result = events.Select(e => new
+    var effectivePage = Math.Max(1, page ?? 1);
+    var effectivePageSize = Math.Clamp(pageSize ?? count ?? 50, 1, 500);
+    var effectiveCount = Math.Clamp(count ?? (effectivePage * effectivePageSize), 1, 500);
+    var query = new AdminAuditEventsQuery
     {
-        e.Response.EventId,
-        e.Request.EventType,
-        e.Request.ActorId,
-        Host = e.Request.Host,
-        Severity = e.Request.Severity,
-        e.Request.CommandId,
-        e.Request.ResourceId,
-        e.Response.RecordedAtUtc
+        Count = effectiveCount,
+        Page = effectivePage,
+        PageSize = effectivePageSize,
+        EventType = NormalizeFilter(eventType),
+        ActorId = NormalizeFilter(actorId),
+        Host = host,
+        Severity = severity,
+        CommandId = NormalizeFilter(commandId),
+        ResourceId = NormalizeFilter(resourceId),
+        Search = NormalizeFilter(search),
+        SinceUtc = sinceUtc,
+        UntilUtc = untilUtc
+    };
+    if (query.SinceUtc > query.UntilUtc)
+        return Results.BadRequest(ApiEnvelope<object>.Failure("sinceUtc must be earlier than untilUtc.", GetTraceId(ctx)));
+
+    var events = await auditSink.GetRecentAsync(GetAuditFetchCount(query, 500), ctx.RequestAborted);
+    var filteredEvents = ApplyAuditEventFilters(events, query).ToArray();
+    var result = filteredEvents
+        .Skip((effectivePage - 1) * effectivePageSize)
+        .Take(effectivePageSize)
+        .Select(ToAdminAuditEventItem)
+        .ToArray();
+    var response = new AdminAuditEventsResponse
+    {
+        Items = result,
+        Pagination = new PaginationResponse { Page = effectivePage, PageSize = effectivePageSize, Total = filteredEvents.Length },
+        Query = query
+    };
+    return Results.Ok(ApiEnvelope<AdminAuditEventsResponse>.Success(response, GetTraceId(ctx)));
+});
+admin.MapGet("/audit-events/export", async (
+    HttpContext ctx,
+    IAuditSink auditSink,
+    int? count,
+    string? eventType,
+    string? actorId,
+    OfficeHost? host,
+    AuditSeverity? severity,
+    string? commandId,
+    string? resourceId,
+    string? search,
+    DateTimeOffset? sinceUtc,
+    DateTimeOffset? untilUtc) =>
+{
+    var effectiveCount = Math.Clamp(count ?? 500, 1, 5000);
+    var query = new AdminAuditEventsQuery
+    {
+        Count = effectiveCount,
+        EventType = NormalizeFilter(eventType),
+        ActorId = NormalizeFilter(actorId),
+        Host = host,
+        Severity = severity,
+        CommandId = NormalizeFilter(commandId),
+        ResourceId = NormalizeFilter(resourceId),
+        Search = NormalizeFilter(search),
+        SinceUtc = sinceUtc,
+        UntilUtc = untilUtc
+    };
+    if (query.SinceUtc > query.UntilUtc)
+        return Results.BadRequest(ApiEnvelope<object>.Failure("sinceUtc must be earlier than untilUtc.", GetTraceId(ctx)));
+
+    var events = await auditSink.GetRecentAsync(GetAuditFetchCount(query, 5000), ctx.RequestAborted);
+    var csv = BuildAuditEventsCsv(ApplyAuditEventFilters(events, query).Take(effectiveCount).ToArray());
+    var fileName = $"modelforge-audit-{DateTime.UtcNow:yyyyMMdd-HHmmss}.csv";
+    return Results.File(
+        Encoding.UTF8.GetPreamble().Concat(Encoding.UTF8.GetBytes(csv)).ToArray(),
+        "text/csv; charset=utf-8",
+        fileName);
+});
+admin.MapGet("/audit-events/summary", async (
+    HttpContext ctx,
+    IAuditSink auditSink,
+    int? hours,
+    int? count,
+    string? eventType,
+    string? actorId,
+    OfficeHost? host,
+    AuditSeverity? severity,
+    string? commandId,
+    string? resourceId,
+    string? search,
+    DateTimeOffset? sinceUtc,
+    DateTimeOffset? untilUtc) =>
+{
+    var windowHours = Math.Clamp(hours ?? 168, 1, 24 * 30);
+    var effectiveCount = Math.Clamp(count ?? 1000, 1, 5000);
+    var since = DateTimeOffset.UtcNow.AddHours(-windowHours);
+    var bucketHours = GetAuditTimelineBucketHours(windowHours);
+    var query = new AdminAuditEventsQuery
+    {
+        Count = effectiveCount,
+        EventType = NormalizeFilter(eventType),
+        ActorId = NormalizeFilter(actorId),
+        Host = host,
+        Severity = severity,
+        CommandId = NormalizeFilter(commandId),
+        ResourceId = NormalizeFilter(resourceId),
+        Search = NormalizeFilter(search),
+        SinceUtc = sinceUtc,
+        UntilUtc = untilUtc
+    };
+    if (query.SinceUtc > query.UntilUtc)
+        return Results.BadRequest(ApiEnvelope<object>.Failure("sinceUtc must be earlier than untilUtc.", GetTraceId(ctx)));
+
+    var events = await auditSink.GetRecentAsync(GetAuditFetchCount(query, 5000), ctx.RequestAborted);
+    var windowEvents = events
+        .Where(e => AuditEventMatches(e, query))
+        .Where(e => e.Response.RecordedAtUtc >= since)
+        .ToArray();
+
+    var response = new AdminAuditSummaryResponse
+    {
+        GeneratedAtUtc = DateTimeOffset.UtcNow,
+        WindowHours = windowHours,
+        BucketHours = bucketHours,
+        TotalEvents = windowEvents.Length,
+        ByEventType = BuildAuditSummaryBuckets(windowEvents, e => e.Request.EventType),
+        ByHost = BuildAuditSummaryBuckets(windowEvents, e => e.Request.Host.ToString()),
+        ByActor = BuildAuditSummaryBuckets(windowEvents, e => string.IsNullOrWhiteSpace(e.Request.ActorId) ? "anonymous" : e.Request.ActorId),
+        Timeline = BuildAuditTimelineBuckets(windowEvents, since, DateTimeOffset.UtcNow, bucketHours),
+        Heatmap = BuildAuditHeatmap(windowEvents),
+        Query = query
+    };
+
+    return Results.Ok(ApiEnvelope<AdminAuditSummaryResponse>.Success(response, GetTraceId(ctx)));
+});
+admin.MapPost("/audit-events/retention", async (
+    HttpContext ctx,
+    IAuditSink auditSink,
+    IConfigurationStore configurationStore,
+    IConfiguration appConfiguration,
+    AdminAuditRetentionRequest request) =>
+{
+    var retentionDays = request.RetentionDays ?? await GetAuditRetentionDaysAsync(
+        configurationStore,
+        appConfiguration,
+        ctx.RequestAborted);
+    if (retentionDays < 1 || retentionDays > 3650)
+    {
+        return Results.BadRequest(ApiEnvelope<object>.Failure(
+            "retentionDays must be between 1 and 3650.",
+            GetTraceId(ctx)));
+    }
+
+    var cutoffUtc = DateTimeOffset.UtcNow.AddDays(-retentionDays);
+    var matchedEvents = await auditSink.CountBeforeAsync(cutoffUtc, ctx.RequestAborted);
+    var deletedEvents = request.DryRun
+        ? 0
+        : await auditSink.DeleteBeforeAsync(cutoffUtc, ctx.RequestAborted);
+    if (!request.DryRun)
+    {
+        await RecordBackendAuditAsync(
+            ctx,
+            auditSink,
+            logger,
+            "admin.audit.retention.pruned",
+            AuditSeverity.Warning,
+            resourceId: "audit-events",
+            metadata: new Dictionary<string, string>
+            {
+                ["retentionDays"] = retentionDays.ToString(),
+                ["cutoffUtc"] = cutoffUtc.ToString("O"),
+                ["matchedEvents"] = matchedEvents.ToString(),
+                ["deletedEvents"] = deletedEvents.ToString()
+            });
+    }
+
+    var response = new AdminAuditRetentionResponse
+    {
+        RetentionDays = retentionDays,
+        CutoffUtc = cutoffUtc,
+        MatchedEvents = matchedEvents,
+        DeletedEvents = deletedEvents,
+        DryRun = request.DryRun,
+        ExecutedAtUtc = DateTimeOffset.UtcNow
+    };
+
+    return Results.Ok(ApiEnvelope<AdminAuditRetentionResponse>.Success(response, GetTraceId(ctx)));
+});
+admin.MapGet("/diagnostics", async (
+    HttpContext ctx,
+    ICommandCatalog commandCatalog,
+    ILinkMetadataStore linkStore,
+    IDictionaryService dictionaryService,
+    IConfigurationStore configurationStore,
+    IConfiguration appConfiguration,
+    IAuditSink auditSink) =>
+{
+    var response = await BuildAdminDiagnosticsAsync(
+        ctx,
+        provider,
+        commandCatalog,
+        linkStore,
+        dictionaryService,
+        configurationStore,
+        appConfiguration,
+        auditSink);
+
+    return Results.Ok(ApiEnvelope<AdminDiagnosticsResponse>.Success(response, GetTraceId(ctx)));
+});
+admin.MapGet("/diagnostics/bundle", async (
+    HttpContext ctx,
+    ICommandCatalog commandCatalog,
+    ILinkMetadataStore linkStore,
+    IDictionaryService dictionaryService,
+    IConfigurationStore configurationStore,
+    IConfiguration appConfiguration,
+    IAuditSink auditSink) =>
+{
+    var summary = await BuildAdminDiagnosticsAsync(
+        ctx,
+        provider,
+        commandCatalog,
+        linkStore,
+        dictionaryService,
+        configurationStore,
+        appConfiguration,
+        auditSink);
+    var auditEvents = await auditSink.GetRecentAsync(100, ctx.RequestAborted);
+    var bundle = new AdminDiagnosticsBundleResponse
+    {
+        Summary = summary,
+        Runtime = BuildRuntimeDiagnostics(),
+        RecentAuditEvents = auditEvents.Select(ToAdminAuditEventItem).ToArray(),
+        Notes =
+        [
+            "This diagnostics bundle is JSON-only and excludes log files, secrets, authentication tokens, and workbook contents.",
+            "Use MSI install/uninstall logs separately when debugging installer failures."
+        ]
+    };
+    var payload = JsonSerializer.SerializeToUtf8Bytes(bundle, new JsonSerializerOptions(JsonSerializerDefaults.Web)
+    {
+        WriteIndented = true
     });
-    var pagination = new { page = page ?? 1, pageSize = pageSize ?? 50, total = result.Count() };
-    return Results.Ok(ApiEnvelope<object>.Success(new { items = result, pagination }, GetTraceId(ctx)));
+    var fileName = $"modelforge-diagnostics-{DateTime.UtcNow:yyyyMMdd-HHmmss}.json";
+    return Results.File(payload, "application/json; charset=utf-8", fileName);
 });
 
 // ── Public Endpoints ──
 app.MapGet("/health", async (HttpContext ctx) =>
 {
     var health = new HealthResponse();
-    object? dbStatus = null;
-    try
-    {
-        if (provider != "inmemory")
-        {
-            using var scope = app.Services.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<ModelForgeDbContext>();
-            var canConnect = await db.Database.CanConnectAsync();
-            dbStatus = new { provider, connected = canConnect };
-        }
-        else
-        {
-            dbStatus = new { provider = "inmemory", connected = true };
-        }
-    }
-    catch (Exception ex)
-    {
-        dbStatus = new { provider, connected = false, error = ex.Message };
-    }
+    var dbStatus = await GetDatabaseStatusAsync(ctx, provider);
     return Results.Ok(ApiEnvelope<object>.Success(new { health.Status, health.Service, health.TimestampUtc, database = dbStatus }, GetTraceId(ctx)));
 });
 app.MapGet("/api/version", (HttpContext ctx) =>
@@ -238,7 +567,7 @@ api.MapGet("/commands", (HttpContext ctx, ICommandCatalog catalog) =>
 api.MapPost("/commands/dispatch", async (HttpContext ctx, ICommandDispatcher dispatcher, CommandDispatchRequest request) =>
 {
     if (string.IsNullOrWhiteSpace(request.CommandId))
-        return Results.BadRequest(new { error = "commandId is required." });
+        return Results.BadRequest(ApiEnvelope<object>.Failure("commandId is required.", GetTraceId(ctx)));
     var response = await dispatcher.DispatchAsync(request, ctx.RequestAborted);
     return Results.Accepted($"/api/commands/dispatch/{response.DispatchId}",
         ApiEnvelope<CommandDispatchResponse>.Success(response, GetTraceId(ctx)));
@@ -248,15 +577,47 @@ api.MapGet("/config/{scope}", async (HttpContext ctx, IConfigurationStore store,
     var response = await store.GetAsync(scope, ctx.RequestAborted);
     return Results.Ok(ApiEnvelope<ConfigurationResponse>.Success(response, GetTraceId(ctx)));
 });
-api.MapPut("/config/{scope}", async (HttpContext ctx, IConfigurationStore store, string scope, ConfigurationUpsertRequest request) =>
+api.MapPut("/config/{scope}", async (HttpContext ctx, IConfigurationStore store, IAuditSink auditSink, string scope, ConfigurationUpsertRequest request) =>
 {
     var response = await store.UpsertAsync(scope, request, ctx.RequestAborted);
+    await RecordBackendAuditAsync(
+        ctx,
+        auditSink,
+        logger,
+        "admin.config.updated",
+        AuditSeverity.Information,
+        resourceId: scope,
+        metadata: new Dictionary<string, string>
+        {
+            ["updatedBy"] = request.UpdatedBy ?? string.Empty,
+            ["keyCount"] = request.Values.Count.ToString()
+        });
     return Results.Ok(ApiEnvelope<ConfigurationResponse>.Success(response, GetTraceId(ctx)));
 }).RequireAuthorization("AdminOnly");
-api.MapPost("/audit-events", async (HttpContext ctx, IAuditSink auditSink, AuditEventRequest request) =>
+api.MapPost("/audit-events", async (
+    HttpContext ctx,
+    IAuditSink auditSink,
+    IConfigurationStore configurationStore,
+    TelemetryPolicy telemetryPolicy,
+    AuditEventRequest request) =>
 {
     if (string.IsNullOrWhiteSpace(request.EventType))
-        return Results.BadRequest(new { error = "eventType is required." });
+        return Results.BadRequest(ApiEnvelope<object>.Failure("eventType is required.", GetTraceId(ctx)));
+    if (!await telemetryPolicy.ShouldRecordAuditEventAsync(request, configurationStore, ctx.RequestAborted))
+    {
+        return Results.Accepted(
+            "/api/audit-events/skipped",
+            ApiEnvelope<AuditEventResponse>.Success(
+                new AuditEventResponse
+                {
+                    EventId = "skipped",
+                    RecordedAtUtc = DateTimeOffset.UtcNow,
+                    Recorded = false,
+                    Message = "Telemetry is disabled for non-security informational events."
+                },
+                GetTraceId(ctx)));
+    }
+
     var response = await auditSink.RecordAsync(request, ctx.RequestAborted);
     return Results.Accepted($"/api/audit-events/{response.EventId}",
         ApiEnvelope<AuditEventResponse>.Success(response, GetTraceId(ctx)));
@@ -270,7 +631,9 @@ api.MapPost("/links", async (HttpContext ctx, ILinkMetadataStore store, CreateLi
 {
     if (string.IsNullOrWhiteSpace(request.SourceDocumentId) || string.IsNullOrWhiteSpace(request.SourceAddress) ||
         string.IsNullOrWhiteSpace(request.TargetDocumentId) || string.IsNullOrWhiteSpace(request.TargetAddress))
-        return Results.BadRequest(new { error = "sourceDocumentId, sourceAddress, targetDocumentId, and targetAddress are required." });
+        return Results.BadRequest(ApiEnvelope<object>.Failure(
+            "sourceDocumentId, sourceAddress, targetDocumentId, and targetAddress are required.",
+            GetTraceId(ctx)));
     var response = await store.CreateAsync(request, ctx.RequestAborted);
     return Results.Created($"/api/links/{response.LinkId}",
         ApiEnvelope<LinkMetadata>.Success(response, GetTraceId(ctx)));
@@ -278,7 +641,7 @@ api.MapPost("/links", async (HttpContext ctx, ILinkMetadataStore store, CreateLi
 api.MapPost("/links/{linkId}/refresh", async (HttpContext ctx, ILinkMetadataStore store, string linkId, LinkRefreshRequest request) =>
 {
     if (string.IsNullOrWhiteSpace(linkId))
-        return Results.BadRequest(new { error = "linkId is required." });
+        return Results.BadRequest(ApiEnvelope<object>.Failure("linkId is required.", GetTraceId(ctx)));
     request.LinkId = linkId;
     var response = await store.MarkRefreshRequestedAsync(request, ctx.RequestAborted);
     return Results.Accepted($"/api/links/{linkId}",
@@ -288,23 +651,80 @@ api.MapPost("/links/{linkId}/refresh", async (HttpContext ctx, ILinkMetadataStor
 // ── Corporate Dictionary ──
 var dict = app.MapGroup("/api/dictionary");
 dict.MapGet("/", (HttpContext ctx, IDictionaryService service) =>
-    Results.Ok(ApiEnvelope<object>.Success(service.GetAll(), GetTraceId(ctx))));
-dict.MapPost("/", (HttpContext ctx, DictionaryTerm term, IDictionaryService service) =>
+    Results.Ok(ApiEnvelope<IReadOnlyList<DictionaryTerm>>.Success(service.GetAll(), GetTraceId(ctx))));
+dict.MapPost("/", async (HttpContext ctx, DictionaryTerm term, IDictionaryService service, IAuditSink auditSink) =>
 {
-    if (string.IsNullOrWhiteSpace(term.Id) || string.IsNullOrWhiteSpace(term.Term))
-        return Results.BadRequest(new { error = "id and preferred are required." });
+    if (string.IsNullOrWhiteSpace(term.Term))
+        return Results.BadRequest(ApiEnvelope<object>.Failure("term is required.", GetTraceId(ctx)));
     var created = service.AddOrUpdate(term);
+    await RecordBackendAuditAsync(
+        ctx,
+        auditSink,
+        logger,
+        "admin.dictionary.term.upserted",
+        AuditSeverity.Information,
+        resourceId: created.Id,
+        metadata: new Dictionary<string, string>
+        {
+            ["term"] = created.Term,
+            ["category"] = created.Category,
+            ["severity"] = created.Severity
+        });
     return Results.Created($"/api/dictionary/{created.Id}",
-        ApiEnvelope<object>.Success(created, GetTraceId(ctx)));
+        ApiEnvelope<DictionaryTerm>.Success(created, GetTraceId(ctx)));
 }).RequireAuthorization("AdminOnly");
-dict.MapDelete("/{id}", (HttpContext ctx, string id, IDictionaryService service) =>
+dict.MapGet("/export", (HttpContext ctx, IDictionaryService service) =>
+    Results.Ok(ApiEnvelope<DictionaryExportResponse>.Success(
+        new DictionaryExportResponse { Terms = service.GetAll() },
+        GetTraceId(ctx)))).RequireAuthorization("AdminOnly");
+dict.MapGet("/service-export", (HttpContext ctx, IDictionaryService service) =>
+{
+    if (!IsValidServiceToken(ctx, serviceToken))
+    {
+        return Results.Json(
+            ApiEnvelope<object>.Failure("Valid service token is required.", GetTraceId(ctx)),
+            statusCode: StatusCodes.Status401Unauthorized);
+    }
+
+    return Results.Ok(ApiEnvelope<DictionaryExportResponse>.Success(
+        new DictionaryExportResponse { Terms = service.GetAll() },
+        GetTraceId(ctx)));
+});
+dict.MapPost("/import", async (HttpContext ctx, DictionaryImportRequest request, IDictionaryService service, IAuditSink auditSink) =>
+{
+    if (request.Terms.Count == 0)
+        return Results.BadRequest(ApiEnvelope<object>.Failure("terms is required.", GetTraceId(ctx)));
+    var response = service.Import(request);
+    await RecordBackendAuditAsync(
+        ctx,
+        auditSink,
+        logger,
+        "admin.dictionary.imported",
+        AuditSeverity.Information,
+        metadata: new Dictionary<string, string>
+        {
+            ["imported"] = response.Imported.ToString(),
+            ["overwrite"] = request.Overwrite.ToString()
+        });
+    return Results.Ok(ApiEnvelope<DictionaryImportResponse>.Success(response, GetTraceId(ctx)));
+}).RequireAuthorization("AdminOnly");
+dict.MapDelete("/{id}", async (HttpContext ctx, string id, IDictionaryService service, IAuditSink auditSink) =>
 {
     if (service.Delete(id))
+    {
+        await RecordBackendAuditAsync(
+            ctx,
+            auditSink,
+            logger,
+            "admin.dictionary.term.deleted",
+            AuditSeverity.Information,
+            resourceId: id);
         return Results.Ok(ApiEnvelope<object>.Success(new { deleted = id }, GetTraceId(ctx)));
-    return Results.NotFound(new { error = $"Term '{id}' not found." });
+    }
+    return Results.NotFound(ApiEnvelope<object>.Failure($"Term '{id}' not found.", GetTraceId(ctx)));
 }).RequireAuthorization("AdminOnly");
 dict.MapPost("/check", (HttpContext ctx, DictionaryCheckRequest request, IDictionaryService service) =>
-    Results.Ok(ApiEnvelope<object>.Success(service.Check(request), GetTraceId(ctx))));
+    Results.Ok(ApiEnvelope<DictionaryCheckResponse>.Success(service.Check(request), GetTraceId(ctx))));
 
 app.Run();
 
@@ -312,3 +732,381 @@ static string GetTraceId(HttpContext context) =>
     context.Items.TryGetValue("TraceId", out var traceId) && traceId is string value
         ? value
         : Guid.NewGuid().ToString("N");
+
+static async Task RecordBackendAuditAsync(
+    HttpContext context,
+    IAuditSink auditSink,
+    ILogger logger,
+    string eventType,
+    AuditSeverity severity,
+    string? actorId = null,
+    string? resourceId = null,
+    string? commandId = null,
+    Dictionary<string, string>? metadata = null)
+{
+    try
+    {
+        await auditSink.RecordAsync(new AuditEventRequest
+        {
+            EventType = eventType,
+            ActorId = string.IsNullOrWhiteSpace(actorId) ? GetActorId(context) : actorId,
+            Host = OfficeHost.Web,
+            Severity = severity,
+            CommandId = commandId,
+            ResourceId = resourceId,
+            Metadata = metadata ?? new Dictionary<string, string>()
+        }, context.RequestAborted);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Backend audit event record failed: {EventType}", eventType);
+    }
+}
+
+static string GetActorId(HttpContext context) =>
+    context.User.FindFirstValue("sub") ??
+    context.User.FindFirstValue(ClaimTypes.NameIdentifier) ??
+    context.User.Identity?.Name ??
+    "anonymous";
+
+static async Task<DatabaseDiagnostics> GetDatabaseStatusAsync(HttpContext context, string provider)
+{
+    try
+    {
+        if (provider != "inmemory")
+        {
+            using var scope = context.RequestServices.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ModelForgeDbContext>();
+            var canConnect = await db.Database.CanConnectAsync(context.RequestAborted);
+            return new DatabaseDiagnostics(provider, canConnect, null);
+        }
+
+        return new DatabaseDiagnostics("inmemory", true, null);
+    }
+    catch (Exception ex)
+    {
+        return new DatabaseDiagnostics(provider, false, ex.Message);
+    }
+}
+
+static async Task<AdminDiagnosticsResponse> BuildAdminDiagnosticsAsync(
+    HttpContext context,
+    string provider,
+    ICommandCatalog commandCatalog,
+    ILinkMetadataStore linkStore,
+    IDictionaryService dictionaryService,
+    IConfigurationStore configurationStore,
+    IConfiguration appConfiguration,
+    IAuditSink auditSink)
+{
+    var database = await GetDatabaseStatusAsync(context, provider);
+    var links = await linkStore.GetAllAsync(context.RequestAborted);
+    var configuration = await configurationStore.GetAsync("default", context.RequestAborted);
+    var auditEvents = await auditSink.GetRecentAsync(100, context.RequestAborted);
+    var auditRetentionDays = GetAuditRetentionDays(configuration.Values, appConfiguration);
+    var auditRetentionCutoffUtc = DateTimeOffset.UtcNow.AddDays(-auditRetentionDays);
+    var auditEventsEligibleForRetentionPrune = await auditSink.CountBeforeAsync(
+        auditRetentionCutoffUtc,
+        context.RequestAborted);
+
+    return new AdminDiagnosticsResponse
+    {
+        Version = new VersionInfoResponse(),
+        DatabaseProvider = provider,
+        DatabaseConnected = database.Connected,
+        CommandCount = commandCatalog.GetAll().Count,
+        LinkCount = links.Count,
+        DictionaryTermCount = dictionaryService.GetAll().Count,
+        RecentAuditEventCount = auditEvents.Count,
+        AuditRetentionDays = auditRetentionDays,
+        AuditRetentionCutoffUtc = auditRetentionCutoffUtc,
+        AuditEventsEligibleForRetentionPrune = auditEventsEligibleForRetentionPrune,
+        Configuration = RedactConfiguration(configuration.Values),
+        Notes = BuildDiagnosticsNotes(database, provider)
+    };
+}
+
+static Dictionary<string, string> BuildRuntimeDiagnostics() =>
+    new()
+    {
+        ["machineName"] = Environment.MachineName,
+        ["osVersion"] = Environment.OSVersion.VersionString,
+        ["processArchitecture"] = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString(),
+        ["frameworkDescription"] = System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription,
+        ["workingSetMb"] = (Environment.WorkingSet / 1024d / 1024d).ToString("F1"),
+        ["processorCount"] = Environment.ProcessorCount.ToString()
+    };
+
+static IReadOnlyCollection<string> BuildDiagnosticsNotes(DatabaseDiagnostics database, string provider)
+{
+    var notes = new List<string>();
+    if (provider == "inmemory")
+        notes.Add("Using in-memory storage; data is not durable across restarts.");
+    if (!database.Connected)
+        notes.Add("Database connectivity check failed.");
+    notes.Add("Diagnostics intentionally exclude secrets, authentication tokens, and workbook contents.");
+    return notes;
+}
+
+static async Task<int> GetAuditRetentionDaysAsync(
+    IConfigurationStore configurationStore,
+    IConfiguration appConfiguration,
+    CancellationToken cancellationToken)
+{
+    var configuration = await configurationStore.GetAsync("default", cancellationToken);
+    return GetAuditRetentionDays(configuration.Values, appConfiguration);
+}
+
+static int GetAuditRetentionDays(Dictionary<string, string> configuration, IConfiguration appConfiguration)
+{
+    if (configuration.TryGetValue("AuditRetentionDays", out var value) &&
+        int.TryParse(value, out var retentionDays))
+    {
+        return Math.Clamp(retentionDays, 1, 3650);
+    }
+
+    var configuredRetentionDays = appConfiguration.GetValue<int?>("AuditRetentionDays");
+    if (configuredRetentionDays.HasValue)
+        return Math.Clamp(configuredRetentionDays.Value, 1, 3650);
+
+    return 90;
+}
+
+static Dictionary<string, string> RedactConfiguration(Dictionary<string, string> values) =>
+    values.ToDictionary(item => item.Key, item => ShouldRedactConfigurationValue(item.Key) ? "[REDACTED]" : item.Value);
+
+static bool ShouldRedactConfigurationValue(string key)
+{
+    var normalized = key
+        .Replace("_", string.Empty, StringComparison.Ordinal)
+        .Replace("-", string.Empty, StringComparison.Ordinal)
+        .Replace(":", string.Empty, StringComparison.Ordinal)
+        .ToLowerInvariant();
+    var sensitiveMarkers = new[]
+    {
+        "apikey",
+        "secret",
+        "token",
+        "password",
+        "credential",
+        "connectionstring",
+        "jwt",
+        "privatekey"
+    };
+    return sensitiveMarkers.Any(normalized.Contains);
+}
+
+static bool IsValidServiceToken(HttpContext context, string configuredToken)
+{
+    if (string.IsNullOrWhiteSpace(configuredToken))
+        return false;
+
+    var providedToken = context.Request.Headers["X-Service-Token"].FirstOrDefault();
+    return !string.IsNullOrWhiteSpace(providedToken) &&
+           string.Equals(providedToken, configuredToken, StringComparison.Ordinal);
+}
+
+static AdminAuditEventItem ToAdminAuditEventItem((AuditEventRequest Request, AuditEventResponse Response) entry) =>
+    new()
+    {
+        EventId = entry.Response.EventId,
+        EventType = entry.Request.EventType,
+        ActorId = entry.Request.ActorId,
+        Host = entry.Request.Host,
+        Severity = entry.Request.Severity,
+        CommandId = entry.Request.CommandId,
+        ResourceId = entry.Request.ResourceId,
+        RecordedAtUtc = entry.Response.RecordedAtUtc
+    };
+
+static AdminUserResponse ToAdminUserResponse(UserIdentity user) =>
+    new()
+    {
+        Id = user.Id,
+        Username = user.Username,
+        Role = user.Role,
+        IsActive = user.IsActive,
+        CreatedAt = user.CreatedAt
+    };
+
+static string BuildAuditEventsCsv(IReadOnlyList<(AuditEventRequest Request, AuditEventResponse Response)> events)
+{
+    var builder = new StringBuilder();
+    builder.AppendLine("eventId,recordedAtUtc,eventType,actorId,host,severity,commandId,resourceId");
+    foreach (var entry in events)
+    {
+        builder.AppendJoin(',', new[]
+        {
+            CsvEscape(entry.Response.EventId),
+            CsvEscape(entry.Response.RecordedAtUtc.ToString("O")),
+            CsvEscape(entry.Request.EventType),
+            CsvEscape(entry.Request.ActorId),
+            CsvEscape(entry.Request.Host.ToString()),
+            CsvEscape(entry.Request.Severity.ToString()),
+            CsvEscape(entry.Request.CommandId ?? string.Empty),
+            CsvEscape(entry.Request.ResourceId ?? string.Empty)
+        });
+        builder.AppendLine();
+    }
+
+    return builder.ToString();
+}
+
+static string? NormalizeFilter(string? value) =>
+    string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+static int GetAuditFetchCount(AdminAuditEventsQuery query, int maxCount)
+{
+    if (HasAuditFilter(query))
+        return maxCount;
+
+    var requestedCount = Math.Max(query.Count ?? 0, (query.Page ?? 1) * (query.PageSize ?? 0));
+    return Math.Clamp(requestedCount <= 0 ? maxCount : requestedCount, 1, maxCount);
+}
+
+static bool HasAuditFilter(AdminAuditEventsQuery query) =>
+    !string.IsNullOrWhiteSpace(query.EventType) ||
+    !string.IsNullOrWhiteSpace(query.ActorId) ||
+    !string.IsNullOrWhiteSpace(query.CommandId) ||
+    !string.IsNullOrWhiteSpace(query.ResourceId) ||
+    !string.IsNullOrWhiteSpace(query.Search) ||
+    query.Host.HasValue ||
+    query.Severity.HasValue ||
+    query.SinceUtc.HasValue ||
+    query.UntilUtc.HasValue;
+
+static IEnumerable<(AuditEventRequest Request, AuditEventResponse Response)> ApplyAuditEventFilters(
+    IEnumerable<(AuditEventRequest Request, AuditEventResponse Response)> events,
+    AdminAuditEventsQuery query) =>
+    events.Where(item => AuditEventMatches(item, query));
+
+static bool AuditEventMatches(
+    (AuditEventRequest Request, AuditEventResponse Response) item,
+    AdminAuditEventsQuery query)
+{
+    if (query.SinceUtc.HasValue && item.Response.RecordedAtUtc < query.SinceUtc.Value)
+        return false;
+    if (query.UntilUtc.HasValue && item.Response.RecordedAtUtc > query.UntilUtc.Value)
+        return false;
+    if (!TextEquals(query.EventType, item.Request.EventType))
+        return false;
+    if (!TextEquals(query.ActorId, item.Request.ActorId))
+        return false;
+    if (!TextEquals(query.CommandId, item.Request.CommandId))
+        return false;
+    if (!TextEquals(query.ResourceId, item.Request.ResourceId))
+        return false;
+    if (query.Host.HasValue && item.Request.Host != query.Host.Value)
+        return false;
+    if (query.Severity.HasValue && item.Request.Severity != query.Severity.Value)
+        return false;
+    return string.IsNullOrWhiteSpace(query.Search) || AuditEventContains(item, query.Search);
+}
+
+static bool TextEquals(string? expected, string? actual) =>
+    string.IsNullOrWhiteSpace(expected) ||
+    string.Equals(expected.Trim(), actual ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+
+static bool AuditEventContains(
+    (AuditEventRequest Request, AuditEventResponse Response) item,
+    string search)
+{
+    var candidates = new[]
+    {
+        item.Response.EventId,
+        item.Request.EventType,
+        item.Request.ActorId,
+        item.Request.Host.ToString(),
+        item.Request.Severity.ToString(),
+        item.Request.CommandId,
+        item.Request.ResourceId
+    };
+
+    return candidates.Any(value =>
+        !string.IsNullOrWhiteSpace(value) &&
+        value.Contains(search, StringComparison.OrdinalIgnoreCase));
+}
+
+static IReadOnlyCollection<AdminAuditSummaryBucket> BuildAuditSummaryBuckets(
+    IEnumerable<(AuditEventRequest Request, AuditEventResponse Response)> events,
+    Func<(AuditEventRequest Request, AuditEventResponse Response), string?> keySelector)
+{
+    return events
+        .Select(item => keySelector(item))
+        .Select(key => string.IsNullOrWhiteSpace(key) ? "unknown" : key!)
+        .GroupBy(key => key, StringComparer.OrdinalIgnoreCase)
+        .Select(group => new AdminAuditSummaryBucket { Key = group.Key, Count = group.Count() })
+        .OrderByDescending(bucket => bucket.Count)
+        .ThenBy(bucket => bucket.Key, StringComparer.OrdinalIgnoreCase)
+        .Take(10)
+        .ToArray();
+}
+
+static int GetAuditTimelineBucketHours(int windowHours) =>
+    windowHours <= 24 ? 1 :
+    windowHours <= 168 ? 24 :
+    24 * 7;
+
+static IReadOnlyCollection<AdminAuditTimelineBucket> BuildAuditTimelineBuckets(
+    IReadOnlyCollection<(AuditEventRequest Request, AuditEventResponse Response)> events,
+    DateTimeOffset startUtc,
+    DateTimeOffset endUtc,
+    int bucketHours)
+{
+    var bucketSpan = TimeSpan.FromHours(bucketHours);
+    var buckets = new List<AdminAuditTimelineBucket>();
+    for (var bucketStart = startUtc; bucketStart < endUtc; bucketStart = bucketStart.Add(bucketSpan))
+    {
+        var bucketEnd = bucketStart.Add(bucketSpan);
+        buckets.Add(new AdminAuditTimelineBucket
+        {
+            StartUtc = bucketStart,
+            EndUtc = bucketEnd > endUtc ? endUtc : bucketEnd,
+            Count = events.Count(item =>
+                item.Response.RecordedAtUtc >= bucketStart &&
+                item.Response.RecordedAtUtc < bucketEnd)
+        });
+    }
+
+    return buckets;
+}
+
+static IReadOnlyCollection<AdminAuditHeatmapCell> BuildAuditHeatmap(
+    IReadOnlyCollection<(AuditEventRequest Request, AuditEventResponse Response)> events)
+{
+    var topRows = events
+        .Select(item => string.IsNullOrWhiteSpace(item.Request.EventType) ? "unknown" : item.Request.EventType)
+        .GroupBy(key => key, StringComparer.OrdinalIgnoreCase)
+        .OrderByDescending(group => group.Count())
+        .ThenBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+        .Take(8)
+        .Select(group => group.Key)
+        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    return events
+        .Select(item => new
+        {
+            RowKey = string.IsNullOrWhiteSpace(item.Request.EventType) ? "unknown" : item.Request.EventType,
+            ColumnKey = item.Request.Host.ToString()
+        })
+        .Where(item => topRows.Contains(item.RowKey))
+        .GroupBy(item => new { item.RowKey, item.ColumnKey })
+        .Select(group => new AdminAuditHeatmapCell
+        {
+            RowKey = group.Key.RowKey,
+            ColumnKey = group.Key.ColumnKey,
+            Count = group.Count()
+        })
+        .OrderBy(cell => cell.RowKey, StringComparer.OrdinalIgnoreCase)
+        .ThenBy(cell => cell.ColumnKey, StringComparer.OrdinalIgnoreCase)
+        .ToArray();
+}
+
+static string CsvEscape(string value)
+{
+    if (value.Contains('"') || value.Contains(',') || value.Contains('\r') || value.Contains('\n'))
+        return $"\"{value.Replace("\"", "\"\"")}\"";
+    return value;
+}
+
+internal sealed record DatabaseDiagnostics(string Provider, bool Connected, string? Error);

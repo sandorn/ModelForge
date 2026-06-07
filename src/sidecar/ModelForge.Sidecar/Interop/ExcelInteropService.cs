@@ -19,7 +19,11 @@ public sealed class ExcelInteropService : IDisposable
     }
 
     /// <summary>获取当前 Excel Application 实例。</summary>
-    public dynamic? GetApplication() => _excelApp ??= _factory.GetExcel();
+    public dynamic? GetApplication()
+    {
+        _excelApp = _factory.GetExcel();
+        return _excelApp;
+    }
 
     /// <summary>获取活动工作簿名称。</summary>
     public string? GetActiveWorkbookName()

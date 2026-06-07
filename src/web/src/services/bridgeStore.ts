@@ -1,6 +1,7 @@
 ﻿import { create } from 'zustand';
 import { apiClient } from './apiClient';
 import { sidecarClient } from './sidecarClient';
+import { recordUiAction } from './uiAudit';
 import type { CommandDefinition, HealthResponse, VersionInfoResponse } from '../types/contracts';
 import type { SidecarStatusResponse } from '../types/contracts';
 
@@ -46,7 +47,7 @@ export const useBridgeStore = create<BridgeState>((set, get) => ({
       set({ health, version, commands, isLoading: false });
     } catch (error) {
       set({
-        error: error instanceof Error ? error.message : '鏈煡閿欒',
+        error: error instanceof Error ? error.message : '未知错误',
         isLoading: false
       });
     }
@@ -67,6 +68,11 @@ export const useBridgeStore = create<BridgeState>((set, get) => ({
 
   executeCommand: async (commandId: string, host?: string) => {
     const hostStr = host ?? 'excel';
+    recordUiAction({
+      action: 'command.execute',
+      commandId,
+      metadata: { host: hostStr },
+    });
     const result = await sidecarClient.executeCommand({ commandId, host: hostStr });
     return result.message;
   },

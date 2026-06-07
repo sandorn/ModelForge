@@ -17,7 +17,11 @@ public sealed class WordInteropService : IDisposable
         _logger = logger;
     }
 
-    public dynamic? GetApplication() => _wordApp ??= _factory.GetWord();
+    public dynamic? GetApplication()
+    {
+        _wordApp = _factory.GetWord();
+        return _wordApp;
+    }
 
     public string? GetActiveDocumentName()
     {

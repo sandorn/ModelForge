@@ -121,6 +121,42 @@ public class SqlitePersistenceTests : IAsyncLifetime
         Assert.Equal(3, recent.Count);
         Assert.True(recent[0].Response.RecordedAtUtc >= recent[1].Response.RecordedAtUtc);
     }
+
+    [Fact]
+    public async Task SqliteAuditSink_DeleteBeforeRemovesOnlyExpiredEvents()
+    {
+        var sink = new SqliteAuditSink(_db);
+        _db.AuditEvents.AddRange(
+            new AuditEventEntry
+            {
+                EventId = "old-event",
+                EventType = "audit.old",
+                ActorId = "tester",
+                Host = (int)OfficeHost.Web,
+                Severity = (int)AuditSeverity.Information,
+                RecordedAtUtc = DateTime.UtcNow.AddDays(-120)
+            },
+            new AuditEventEntry
+            {
+                EventId = "new-event",
+                EventType = "audit.new",
+                ActorId = "tester",
+                Host = (int)OfficeHost.Web,
+                Severity = (int)AuditSeverity.Information,
+                RecordedAtUtc = DateTime.UtcNow
+            });
+        await _db.SaveChangesAsync();
+
+        var cutoff = DateTimeOffset.UtcNow.AddDays(-90);
+        var matched = await sink.CountBeforeAsync(cutoff, CancellationToken.None);
+        var deleted = await sink.DeleteBeforeAsync(cutoff, CancellationToken.None);
+        var recent = await sink.GetRecentAsync(10, CancellationToken.None);
+
+        Assert.Equal(1, matched);
+        Assert.Equal(1, deleted);
+        Assert.DoesNotContain(recent, item => item.Response.EventId == "old-event");
+        Assert.Contains(recent, item => item.Response.EventId == "new-event");
+    }
     // ── Link Metadata Store ──
 
     [Fact]

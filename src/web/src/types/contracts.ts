@@ -25,6 +25,153 @@ export type VersionInfoResponse = {
   buildTimestampUtc: string;
 };
 
+// ── Auth & Admin ──
+export type LoginRequest = {
+  username: string;
+  password: string;
+};
+
+export type LoginResponse = {
+  token: string;
+  userId: string;
+  username: string;
+  role: string;
+  expiresAt: string;
+};
+
+export type AdminUserCreateRequest = {
+  username: string;
+  password: string;
+  role?: string;
+};
+
+export type AdminUserResponse = {
+  id: string;
+  username: string;
+  role: string;
+  isActive: boolean;
+  createdAt: string;
+};
+
+export type AdminUserToggleResponse = {
+  userId: string;
+  active: boolean;
+};
+
+export type AdminRolePermissionResponse = {
+  role: string;
+  permissions: string[];
+  builtIn: boolean;
+};
+
+export type AdminRolesResponse = {
+  roles: AdminRolePermissionResponse[];
+};
+
+export type AdminAuditEventItem = {
+  eventId: string;
+  eventType: string;
+  actorId: string;
+  host: OfficeHost;
+  severity: AuditSeverity;
+  commandId?: string;
+  resourceId?: string;
+  recordedAtUtc: string;
+};
+
+export type AdminAuditEventsResponse = {
+  items: AdminAuditEventItem[];
+  pagination: {
+    page: number;
+    pageSize: number;
+    total: number;
+  };
+  query: AdminAuditEventsQuery;
+};
+
+export type AdminAuditEventsQuery = {
+  count?: number;
+  page?: number;
+  pageSize?: number;
+  eventType?: string;
+  actorId?: string;
+  host?: OfficeHost;
+  severity?: AuditSeverity;
+  commandId?: string;
+  resourceId?: string;
+  search?: string;
+  sinceUtc?: string;
+  untilUtc?: string;
+};
+
+export type AdminAuditSummaryBucket = {
+  key: string;
+  count: number;
+};
+
+export type AdminAuditTimelineBucket = {
+  startUtc: string;
+  endUtc: string;
+  count: number;
+};
+
+export type AdminAuditHeatmapCell = {
+  rowKey: string;
+  columnKey: string;
+  count: number;
+};
+
+export type AdminAuditSummaryResponse = {
+  generatedAtUtc: string;
+  windowHours: number;
+  bucketHours: number;
+  totalEvents: number;
+  byEventType: AdminAuditSummaryBucket[];
+  byHost: AdminAuditSummaryBucket[];
+  byActor: AdminAuditSummaryBucket[];
+  timeline: AdminAuditTimelineBucket[];
+  heatmap: AdminAuditHeatmapCell[];
+  query: AdminAuditEventsQuery;
+};
+
+export type AdminAuditRetentionRequest = {
+  retentionDays?: number;
+  dryRun?: boolean;
+};
+
+export type AdminAuditRetentionResponse = {
+  retentionDays: number;
+  cutoffUtc: string;
+  matchedEvents: number;
+  deletedEvents: number;
+  dryRun: boolean;
+  executedAtUtc: string;
+};
+
+export type AdminDiagnosticsResponse = {
+  generatedAtUtc: string;
+  version: VersionInfoResponse;
+  databaseProvider: string;
+  databaseConnected: boolean;
+  commandCount: number;
+  linkCount: number;
+  dictionaryTermCount: number;
+  recentAuditEventCount: number;
+  auditRetentionDays: number;
+  auditRetentionCutoffUtc: string;
+  auditEventsEligibleForRetentionPrune: number;
+  configuration: Record<string, string>;
+  notes: string[];
+};
+
+export type AdminDiagnosticsBundleResponse = {
+  generatedAtUtc: string;
+  summary: AdminDiagnosticsResponse;
+  runtime: Record<string, string>;
+  recentAuditEvents: AdminAuditEventItem[];
+  notes: string[];
+};
+
 // ── Configuration ──
 export type ConfigurationResponse = {
   scope: string;
@@ -87,6 +234,27 @@ export type SidecarStatusResponse = {
   error?: string;
 };
 
+export type ShortcutItem = {
+  commandId: string;
+  displayName: string;
+  shortcut: string;
+};
+
+export type ShortcutExportResponse = {
+  shortcuts: ShortcutItem[];
+  count: number;
+  exportedAtUtc: string;
+};
+
+export type ShortcutImportRequest = {
+  shortcuts: ShortcutItem[];
+};
+
+export type ShortcutImportResponse = {
+  imported: number;
+  shortcuts: ShortcutItem[];
+};
+
 // ── Audit ──
 export type AuditEventRequest = {
   eventType: string;
@@ -101,6 +269,8 @@ export type AuditEventRequest = {
 export type AuditEventResponse = {
   eventId: string;
   recordedAtUtc: string;
+  recorded: boolean;
+  message?: string;
 };
 
 // ── Corporate Dictionary ──
@@ -132,6 +302,30 @@ export type DictionaryCheckResponse = {
   matches: TermMatch[];
   matchCount: number;
   cleanedText?: string;
+};
+
+export type DictionaryImportRequest = {
+  terms: DictionaryTerm[];
+  overwrite?: boolean;
+};
+
+export type DictionaryImportError = {
+  index: number;
+  term?: string;
+  error: string;
+};
+
+export type DictionaryImportResponse = {
+  imported: number;
+  skipped: number;
+  errors: DictionaryImportError[];
+  terms: DictionaryTerm[];
+};
+
+export type DictionaryExportResponse = {
+  terms: DictionaryTerm[];
+  count: number;
+  exportedAtUtc: string;
 };
 
 // ── Link Metadata ──

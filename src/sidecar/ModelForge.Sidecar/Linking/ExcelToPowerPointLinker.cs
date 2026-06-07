@@ -51,14 +51,11 @@ public static class ExcelToPowerPointLinker
         }
 
         // 粘贴为 OLE 链接对象
-        dynamic shape = slide.Shapes.PasteSpecial(
-            0,  // ppPasteDefault = 0
-            1,  // ppPasteOLEObject = 1
-            link: true);
+        dynamic? shape = PasteOleLink(slide.Shapes);
 
         if (shape != null)
         {
-            string shapeName = shape.Name;
+            string shapeName = GetShapeName(shape);
             return $"Range '{workbook.Name}!{sheetName}!{rangeAddr}' 已链接到 " +
                    $"'{presentation.Name}' Slide {slide.SlideIndex}，形状: {shapeName}。";
         }
@@ -121,11 +118,69 @@ public static class ExcelToPowerPointLinker
         else
             slide = presentation.Slides[slideIndex];
 
-        dynamic shape = slide.Shapes.PasteSpecial(0, 1, link: true);
+        dynamic? shape = PasteOleLink(slide.Shapes);
 
         if (shape != null)
-            return $"图表已链接到 '{presentation.Name}' Slide {slide.SlideIndex}，形状: {shape.Name}。";
+            return $"图表已链接到 '{presentation.Name}' Slide {slide.SlideIndex}，形状: {GetShapeName(shape)}。";
 
         return "图表链接粘贴失败。";
+    }
+
+    private static dynamic? PasteOleLink(dynamic shapes)
+    {
+        Exception? lastError = null;
+
+        for (var attempt = 1; attempt <= 5; attempt++)
+        {
+            try
+            {
+                Thread.Sleep(250 * attempt);
+                return shapes.PasteSpecial(
+                    10,      // ppPasteOLEObject
+                    false,   // DisplayAsIcon
+                    "",      // IconFileName
+                    0,       // IconIndex
+                    "",      // IconLabel
+                    true);   // Link
+            }
+            catch (Exception ex)
+            {
+                lastError = ex;
+            }
+        }
+
+        throw new InvalidOperationException(
+            $"PowerPoint OLE 链接粘贴失败。请确认剪贴板未被其他应用占用，且 Excel/PowerPoint 版本兼容。{lastError?.Message}",
+            lastError);
+    }
+
+    private static string GetShapeName(dynamic shapeOrRange)
+    {
+        try
+        {
+            var name = Convert.ToString(shapeOrRange.Name);
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                return name;
+            }
+        }
+        catch
+        {
+        }
+
+        try
+        {
+            dynamic firstShape = shapeOrRange[1];
+            var name = Convert.ToString(firstShape.Name);
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                return name;
+            }
+        }
+        catch
+        {
+        }
+
+        return "OLE Link";
     }
 }

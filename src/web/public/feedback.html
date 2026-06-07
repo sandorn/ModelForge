@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ModelForge 执行反馈</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 16px;
+      background: #f8fafc;
+      color: #0f172a;
+    }
+
+    .card {
+      border-left: 4px solid #2563eb;
+      background: #ffffff;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+      padding: 14px 16px;
+      border-radius: 8px;
+    }
+
+    .card.error {
+      border-left-color: #dc2626;
+    }
+
+    h1 {
+      font-size: 16px;
+      margin: 0 0 8px;
+    }
+
+    p {
+      margin: 6px 0;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    .command {
+      color: #475569;
+      font-family: Consolas, "Cascadia Mono", monospace;
+      font-size: 12px;
+    }
+
+    button {
+      margin-top: 12px;
+      border: 0;
+      background: #2563eb;
+      color: white;
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+
+    .error button {
+      background: #dc2626;
+    }
+  </style>
+</head>
+<body>
+  <main id="card" class="card">
+    <h1 id="title">ModelForge 执行完成</h1>
+    <p class="command" id="command"></p>
+    <p id="message">命令已发送到本机 Sidecar。</p>
+    <button type="button" onclick="window.close()">关闭</button>
+  </main>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const isError = params.get("status") === "error";
+    const commandId = params.get("commandId") || "";
+    const message = params.get("message") || "命令已发送到本机 Sidecar。";
+
+    document.getElementById("card").classList.toggle("error", isError);
+    document.getElementById("title").textContent = isError ? "ModelForge 执行失败" : "ModelForge 执行完成";
+    document.getElementById("command").textContent = commandId ? `命令: ${commandId}` : "";
+    document.getElementById("message").textContent = message;
+  </script>
+</body>
+</html>

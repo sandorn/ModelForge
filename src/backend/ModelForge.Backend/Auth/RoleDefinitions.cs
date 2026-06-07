@@ -20,4 +20,9 @@ public static class RoleDefinitions
 
     public static bool HasPermission(string role, string permission) =>
         RolePermissions.TryGetValue(role, out var perms) && perms.Contains(permission);
+
+    public static IReadOnlyCollection<string> GetPermissions(string role) =>
+        RolePermissions.TryGetValue(role, out var perms)
+            ? perms.OrderBy(permission => permission, StringComparer.OrdinalIgnoreCase).ToArray()
+            : Array.Empty<string>();
 }

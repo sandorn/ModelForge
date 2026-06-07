@@ -16,7 +16,12 @@ var sidecarOptions = builder.Configuration.GetSection("Sidecar").Get<SidecarOpti
                      ?? new SidecarOptions();
 
 builder.Services.AddSingleton(sidecarOptions);
-builder.Services.AddSingleton<ShortcutRegistry>();
+builder.Services.AddSingleton(_ =>
+{
+    var registry = new ShortcutRegistry();
+    registry.RegisterDefaults();
+    return registry;
+});
 
 // 原生 COM Interop 层 (oleaut32 GetActiveObject + dynamic)
 builder.Services.AddSingleton<OfficeApplicationFactory>();
@@ -30,6 +35,10 @@ builder.Services.AddHttpClient<BackendBridgeClient>(client =>
     client.BaseAddress = new Uri(sidecarOptions.BackendBaseUrl);
     client.Timeout = TimeSpan.FromSeconds(sidecarOptions.TimeoutSeconds);
     client.DefaultRequestHeaders.Add("X-Client-Id", "ModelForge.Sidecar");
+    if (!string.IsNullOrWhiteSpace(sidecarOptions.ServiceToken))
+    {
+        client.DefaultRequestHeaders.Add("X-Service-Token", sidecarOptions.ServiceToken);
+    }
 });
 
 // Win32 global keyboard hook (conditional)
@@ -56,6 +65,7 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseCors("SidecarLocal");
+app.UseSidecarLocalApiToken();
 
 // Map Sidecar localhost REST endpoints (port 5200)
 app.MapSidecarEndpoints();
