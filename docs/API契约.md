@@ -1,6 +1,6 @@
-﻿# ModelForge API 契约（阶段一）
+﻿# ModelForge API 契约
 
-本文档定义阶段一后端桥接服务的基础 API 契约，用于连接 Sidecar、Web Add-in 与未来的自动化/AI 能力。阶段一目标不是实现完整业务逻辑，而是统一数据模型、TraceId、命令分发、配置、审计和链接元数据的最小可用接口。
+本文档定义 `0.1.3` 后端桥接服务与 Sidecar 的 API 契约，用于连接 Sidecar、Web Add-in、管理员后台和后续自动化/AI 能力。当前目标是统一数据模型、TraceId、命令分发、配置、审计、诊断、术语字典和链接元数据的最小可用接口。
 
 ## 1. 基本约定
 
@@ -8,10 +8,10 @@
 
 开发环境默认地址：
 
-| 服务 | 地址 | 说明 |
-|------|------|------|
+| 服务        | 地址                    | 说明                                            |
+| ----------- | ----------------------- | ----------------------------------------------- |
 | Backend API | `http://localhost:5095` | ASP.NET Core 认证、配置、审计、字典、链接元数据 |
-| Sidecar API | `http://localhost:5200` | .NET 10 Minimal API，COM 操作与快捷键执行端 |
+| Sidecar API | `http://localhost:5200` | .NET 10 Minimal API，COM 操作与快捷键执行端     |
 
 对应配置：
 
@@ -33,11 +33,11 @@ Backend API 返回统一信封；Sidecar `/api/execute`、`/api/status`、`/api/
 
 字段说明：
 
-| 字段 | 类型 | 必填 | 说明 |
-| --- | --- | --- | --- |
-| `traceId` | `string` | 是 | 请求追踪 ID，优先沿用请求头 `X-Trace-Id`，否则由后端生成。 |
-| `data` | `object/null` | 否 | 成功响应数据。 |
-| `error` | `string/null` | 否 | 错误信息。Backend 已实现 `ApiEnvelope<T>`、业务校验错误信封和全局异常中间件；Sidecar `/api/execute` 也已统一返回 `ApiEnvelope<SidecarExecuteResponse>`。 |
+| 字段      | 类型          | 必填 | 说明                                                                                                                                                     |
+| --------- | ------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `traceId` | `string`      | 是   | 请求追踪 ID，优先沿用请求头 `X-Trace-Id`，否则由后端生成。                                                                                               |
+| `data`    | `object/null` | 否   | 成功响应数据。                                                                                                                                           |
+| `error`   | `string/null` | 否   | 错误信息。Backend 已实现 `ApiEnvelope<T>`、业务校验错误信封和全局异常中间件；Sidecar `/api/execute` 也已统一返回 `ApiEnvelope<SidecarExecuteResponse>`。 |
 
 ### 1.3 TraceId 规则
 
@@ -53,7 +53,7 @@ X-Trace-Id: client-generated-id
 X-Trace-Id: client-generated-id
 ```
 
-阶段一要求：
+当前要求：
 
 - Web Add-in 每次请求生成 `crypto.randomUUID()`。
 - Sidecar 使用 `Guid.NewGuid().ToString("N")`。
@@ -61,37 +61,36 @@ X-Trace-Id: client-generated-id
 
 ### 1.4 枚举值
 
-阶段一 C# 契约位于 `src/shared/ModelForge.Contracts/ApiContracts.cs`。当前 `LoginRequest`、`LoginResponse`、`AdminUser*`、`AdminAuditEventsResponse`、`SidecarExecuteRequest`、`SidecarExecuteResponse`、`SidecarStatusResponse`、`ShortcutItem`、`ShortcutImport*`、`ShortcutExportResponse`、`DictionaryTerm`、`DictionaryCheck*`、`DictionaryImport*`、`DictionaryExportResponse` 等跨层模型已集中在 Contracts，Sidecar/Backend 端点文件不再保留重复 DTO。Web 侧 TypeScript 契约位于 `src/web/src/types/contracts.ts`，枚举数值需与 C# 保持一致。
+当前 C# 契约位于 `src/shared/ModelForge.Contracts/ApiContracts.cs`。`LoginRequest`、`LoginResponse`、`AdminUser*`、`AdminAuditEventsResponse`、`SidecarExecuteRequest`、`SidecarExecuteResponse`、`SidecarStatusResponse`、`ShortcutItem`、`ShortcutImport*`、`ShortcutExportResponse`、`DictionaryTerm`、`DictionaryCheck*`、`DictionaryImport*`、`DictionaryExportResponse` 等跨层模型已集中在 Contracts，Sidecar/Backend 端点文件不再保留重复 DTO。Web 侧 TypeScript 契约位于 `src/web/src/types/contracts.ts`，枚举数值需与 C# 保持一致。
 
 #### OfficeHost
 
-| 名称 | 值 | 说明 |
-| --- | ---: | --- |
-| `Unknown` | 0 | 未知宿主。 |
-| `Excel` | 1 | Excel。 |
-| `PowerPoint` | 2 | PowerPoint。 |
-| `Word` | 3 | Word。 |
-| `Web` | 4 | Web Add-in 或管理页面。 |
+| 名称         |  值 | 说明                    |
+| ------------ | --: | ----------------------- |
+| `Unknown`    |   0 | 未知宿主。              |
+| `Excel`      |   1 | Excel。                 |
+| `PowerPoint` |   2 | PowerPoint。            |
+| `Word`       |   3 | Word。                  |
+| `Web`        |   4 | Web Add-in 或管理页面。 |
 
 #### CommandExecutionTarget
 
-| 名称 | 值 | 说明 |
-| --- | ---: | --- |
-| `Sidecar` | 0 | 由 Sidecar 执行。 |
-| `WebAddIn` | 1 | 由 Web Add-in 执行。 |
-| `Backend` | 2 | 由后端执行。 |
+| 名称       |  值 | 说明                 |
+| ---------- | --: | -------------------- |
+| `Sidecar`  |   0 | 由 Sidecar 执行。    |
+| `WebAddIn` |   1 | 由 Web Add-in 执行。 |
+| `Backend`  |   2 | 由后端执行。         |
 
 #### CommandStatus
 
-| 名称 | 值 | 说明 |
-| --- | ---: | --- |
-| `Accepted` | 0 | 已接收。 |
-| `Completed` | 1 | 已完成。 |
-| `Failed` | 2 | 失败。 |
-| `Deferred` | 3 | 延迟执行。 |
+| 名称        |  值 | 说明       |
+| ----------- | --: | ---------- |
+| `Accepted`  |   0 | 已接收。   |
+| `Completed` |   1 | 已完成。   |
+| `Failed`    |   2 | 失败。     |
+| `Deferred`  |   3 | 延迟执行。 |
 
 ## 2. 健康检查与版本
-
 
 ### 2.1 GET `/health` (Enhanced)
 
@@ -122,7 +121,7 @@ X-Trace-Id: client-generated-id
   "data": {
     "product": "ModelForge",
     "component": "Backend API",
-    "version": "0.1.1-stage1",
+    "version": "0.1.3",
     "apiVersion": "v1",
     "buildTimestampUtc": "2026-06-01T10:00:00+00:00"
   },
@@ -205,12 +204,12 @@ X-Trace-Id: client-generated-id
 
 校验规则：
 
-| 规则 | 错误状态 |
-| --- | --- |
-| `username` 必填 | 400 |
-| `password` 必填 | 400 |
-| `role` 必须为 `Admin` / `Analyst` / `Auditor`，省略时默认为 `Analyst` | 400 |
-| `username` 大小写不敏感且不能重复 | 409 |
+| 规则                                                                  | 错误状态 |
+| --------------------------------------------------------------------- | -------- |
+| `username` 必填                                                       | 400      |
+| `password` 必填                                                       | 400      |
+| `role` 必须为 `Admin` / `Analyst` / `Auditor`，省略时默认为 `Analyst` | 400      |
+| `username` 大小写不敏感且不能重复                                     | 409      |
 
 成功响应：`201 Created`，响应体为 `ApiEnvelope<AdminUserResponse>`。
 
@@ -246,7 +245,13 @@ X-Trace-Id: client-generated-id
     "roles": [
       {
         "role": "Admin",
-        "permissions": ["audit.view", "commands.execute", "config.write", "links.manage", "users.manage"],
+        "permissions": [
+          "audit.view",
+          "commands.execute",
+          "config.write",
+          "links.manage",
+          "users.manage"
+        ],
         "builtIn": true
       },
       {
@@ -408,17 +413,17 @@ eventId,recordedAtUtc,eventType,actorId,host,severity,commandId,resourceId
 
 以下 Backend 写操作会直接写入 `admin.*` 审计事件，不受普通遥测关闭影响：
 
-| 操作 | 事件类型 | resourceId |
-| --- | --- | --- |
-| `POST /api/auth/login` 成功 | `auth.login.succeeded` | 用户 ID |
-| `POST /api/auth/login` 失败 | `auth.login.failed` | 空 |
-| `POST /api/admin/users` | `admin.user.created` | 新用户 ID |
-| `PUT /api/admin/users/{userId}/toggle` | `admin.user.toggled` | 用户 ID |
-| `PUT /api/config/{scope}` | `admin.config.updated` | 配置 scope |
-| `POST /api/dictionary/` | `admin.dictionary.term.upserted` | 术语 ID |
-| `POST /api/dictionary/import` | `admin.dictionary.imported` | 空 |
-| `DELETE /api/dictionary/{id}` | `admin.dictionary.term.deleted` | 术语 ID |
-| `POST /api/admin/audit-events/retention` 执行删除 | `admin.audit.retention.pruned` | `audit-events` |
+| 操作                                              | 事件类型                         | resourceId     |
+| ------------------------------------------------- | -------------------------------- | -------------- |
+| `POST /api/auth/login` 成功                       | `auth.login.succeeded`           | 用户 ID        |
+| `POST /api/auth/login` 失败                       | `auth.login.failed`              | 空             |
+| `POST /api/admin/users`                           | `admin.user.created`             | 新用户 ID      |
+| `PUT /api/admin/users/{userId}/toggle`            | `admin.user.toggled`             | 用户 ID        |
+| `PUT /api/config/{scope}`                         | `admin.config.updated`           | 配置 scope     |
+| `POST /api/dictionary/`                           | `admin.dictionary.term.upserted` | 术语 ID        |
+| `POST /api/dictionary/import`                     | `admin.dictionary.imported`      | 空             |
+| `DELETE /api/dictionary/{id}`                     | `admin.dictionary.term.deleted`  | 术语 ID        |
+| `POST /api/admin/audit-events/retention` 执行删除 | `admin.audit.retention.pruned`   | `audit-events` |
 
 Admin 操作的 `actorId` 取 JWT `sub`（当前为本地用户 ID），`host=Web`，`severity=Information`。登录成功的 `actorId` 为用户 ID；登录失败的 `actorId` 为尝试登录的用户名，`severity=Warning`。审计写入失败只记录 Backend 日志，不影响原业务响应。
 
@@ -436,7 +441,7 @@ Admin 操作的 `actorId` 取 JWT `sub`（当前为本地用户 ID），`host=We
     "version": {
       "product": "ModelForge",
       "component": "Backend API",
-      "version": "0.1.1-stage1",
+      "version": "0.1.3",
       "apiVersion": "v1"
     },
     "databaseProvider": "inmemory",
@@ -488,10 +493,9 @@ Admin 操作的 `actorId` 取 JWT `sub`（当前为本地用户 ID），`host=We
 
 ## 4. 命令目录与命令分发
 
-
 ### 4.1 GET `/api/commands`
 
-返回阶段一 Excel 高频命令目录。阶段一至少包含 20 个 Excel 命令。
+返回当前命令目录。当前目录覆盖 Excel / PowerPoint / Word 已实现命令，Web Add-in 命令面板和 Omnibar 直接使用完整命令 ID（如 `excel.fill-down`、`ppt.align-left`、`word.build-cim`）。
 
 响应数据结构：`CommandDefinition[]`
 
@@ -503,21 +507,21 @@ Admin 操作的 `actorId` 取 JWT `sub`（当前为本地用户 ID），`host=We
   "target": 0,
   "category": "模型审计",
   "defaultShortcut": "Ctrl+Shift+M",
-  "description": "执行阶段一模型检查入口。"
+  "description": "执行模型检查入口。"
 }
 ```
 
 字段说明：
 
-| 字段 | 类型 | 说明 |
-| --- | --- | --- |
-| `id` | `string` | 命令唯一标识，例如 `excel.model-check`。 |
-| `displayName` | `string` | 展示名称。 |
-| `host` | `OfficeHost` | 适用宿主。阶段一主要为 `Excel`。 |
-| `target` | `CommandExecutionTarget` | 默认执行目标。 |
-| `category` | `string` | 命令分类。 |
-| `defaultShortcut` | `string/null` | 默认快捷键。 |
-| `description` | `string` | 命令说明。 |
+| 字段              | 类型                     | 说明                                       |
+| ----------------- | ------------------------ | ------------------------------------------ |
+| `id`              | `string`                 | 命令唯一标识，例如 `excel.model-check`。   |
+| `displayName`     | `string`                 | 展示名称。                                 |
+| `host`            | `OfficeHost`             | 适用宿主：Excel、PowerPoint、Word 或 Web。 |
+| `target`          | `CommandExecutionTarget` | 默认执行目标。                             |
+| `category`        | `string`                 | 命令分类。                                 |
+| `defaultShortcut` | `string/null`            | 默认快捷键。                               |
+| `description`     | `string`                 | 命令说明。                                 |
 
 ### 4.2 POST `/api/commands/dispatch`
 
@@ -662,13 +666,13 @@ Admin 操作的 `actorId` 取 JWT `sub`（当前为本地用户 ID），`host=We
 
 `targetAddress` 推荐格式：
 
-| 目标 | 格式示例 | 说明 |
-| --- | --- | --- |
-| PowerPoint Shape | `Slide1/Shape3` | 第 1 张幻灯片第 3 个形状。 |
-| PowerPoint Chart/命名对象 | `Slide2/Chart4`、`Slide3/Revenue Chart` | 支持对象序号或形状名称。 |
-| Word Field | `Field2` | 第 2 个 Word 字段链接。 |
-| Word InlineShape | `InlineShape4` | 第 4 个内联对象关联字段。 |
-| Word Table | `Table1` | 第 1 个表格内首个链接字段。 |
+| 目标                      | 格式示例                                | 说明                        |
+| ------------------------- | --------------------------------------- | --------------------------- |
+| PowerPoint Shape          | `Slide1/Shape3`                         | 第 1 张幻灯片第 3 个形状。  |
+| PowerPoint Chart/命名对象 | `Slide2/Chart4`、`Slide3/Revenue Chart` | 支持对象序号或形状名称。    |
+| Word Field                | `Field2`                                | 第 2 个 Word 字段链接。     |
+| Word InlineShape          | `InlineShape4`                          | 第 4 个内联对象关联字段。   |
+| Word Table                | `Table1`                                | 第 1 个表格内首个链接字段。 |
 
 响应状态：`201 Created`
 
@@ -701,7 +705,6 @@ Admin 操作的 `actorId` 取 JWT `sub`（当前为本地用户 ID），`host=We
 }
 ```
 
-
 ## 8. 企业术语字典
 
 字典服务用于术语合规检查（术语命中检测与自动替换），种子术语涵盖金融行业常用词汇。
@@ -716,7 +719,14 @@ Admin 操作的 `actorId` 取 JWT `sub`（当前为本地用户 ID），`host=We
 {
   "traceId": "trace-id",
   "data": [
-    { "id": "ebitda", "term": "EBITDA", "replacement": null, "regexPattern": "\bebitda\b", "category": "Financial", "severity": "Info" }
+    {
+      "id": "ebitda",
+      "term": "EBITDA",
+      "replacement": null,
+      "regexPattern": "\bebitda\b",
+      "category": "Financial",
+      "severity": "Info"
+    }
   ],
   "error": null
 }
@@ -754,7 +764,15 @@ Admin 操作的 `actorId` 取 JWT `sub`（当前为本地用户 ID），`host=We
   "traceId": "trace-id",
   "data": {
     "terms": [
-      { "id": "ebitda", "term": "EBITDA", "replacement": null, "regexPattern": "\\bebitda\\b", "category": "Financial", "severity": "Info", "updatedAt": "2026-06-06T10:00:00Z" }
+      {
+        "id": "ebitda",
+        "term": "EBITDA",
+        "replacement": null,
+        "regexPattern": "\\bebitda\\b",
+        "category": "Financial",
+        "severity": "Info",
+        "updatedAt": "2026-06-06T10:00:00Z"
+      }
     ],
     "count": 1,
     "exportedAtUtc": "2026-06-06T10:00:00Z"
@@ -773,7 +791,14 @@ Admin 操作的 `actorId` 取 JWT `sub`（当前为本地用户 ID），`host=We
 {
   "overwrite": true,
   "terms": [
-    { "id": "custom-term", "term": "自定义术语", "replacement": "推荐术语", "regexPattern": null, "category": "Custom", "severity": "Warning" }
+    {
+      "id": "custom-term",
+      "term": "自定义术语",
+      "replacement": "推荐术语",
+      "regexPattern": null,
+      "category": "Custom",
+      "severity": "Warning"
+    }
   ]
 }
 ```
@@ -788,7 +813,12 @@ Admin 操作的 `actorId` 取 JWT `sub`（当前为本地用户 ID），`host=We
     "skipped": 0,
     "errors": [],
     "terms": [
-      { "id": "custom-term", "term": "自定义术语", "category": "Custom", "severity": "Warning" }
+      {
+        "id": "custom-term",
+        "term": "自定义术语",
+        "category": "Custom",
+        "severity": "Warning"
+      }
     ]
   },
   "error": null
@@ -799,14 +829,14 @@ Admin 操作的 `actorId` 取 JWT `sub`（当前为本地用户 ID），`host=We
 
 Admin Console CSV/XLSX 模板列：
 
-| 列名 | 必填 | 说明 |
-| --- | --- | --- |
-| `id` | 否 | 术语 ID，留空时后端生成。 |
-| `term` | 是 | 术语文本。 |
-| `replacement` | 否 | 推荐替换文本。 |
-| `regexPattern` | 否 | 可选正则表达式。 |
-| `category` | 否 | 分类，默认 `General`。 |
-| `severity` | 否 | 级别，默认 `Warning`。 |
+| 列名           | 必填 | 说明                      |
+| -------------- | ---- | ------------------------- |
+| `id`           | 否   | 术语 ID，留空时后端生成。 |
+| `term`         | 是   | 术语文本。                |
+| `replacement`  | 否   | 推荐替换文本。            |
+| `regexPattern` | 否   | 可选正则表达式。          |
+| `category`     | 否   | 分类，默认 `General`。    |
+| `severity`     | 否   | 级别，默认 `Warning`。    |
 
 ### 8.5 GET `/api/dictionary/service-export`
 
@@ -825,7 +855,15 @@ X-Service-Token: replace-with-random-32-byte-token
   "traceId": "trace-id",
   "data": {
     "terms": [
-      { "id": "confidential", "term": "机密", "replacement": null, "regexPattern": null, "category": "Compliance", "severity": "Error", "updatedAt": "2026-06-06T10:00:00Z" }
+      {
+        "id": "confidential",
+        "term": "机密",
+        "replacement": null,
+        "regexPattern": null,
+        "category": "Compliance",
+        "severity": "Error",
+        "updatedAt": "2026-06-06T10:00:00Z"
+      }
     ],
     "count": 1,
     "exportedAtUtc": "2026-06-06T10:00:00Z"
@@ -861,7 +899,13 @@ X-Service-Token: replace-with-random-32-byte-token
   "data": {
     "originalText": "This is a DRAFT...",
     "matches": [
-      { "termId": "draft", "term": "DRAFT", "matchedText": "DRAFT", "position": 10, "suggestion": null }
+      {
+        "termId": "draft",
+        "term": "DRAFT",
+        "matchedText": "DRAFT",
+        "position": 10,
+        "suggestion": null
+      }
     ],
     "matchCount": 3,
     "cleanedText": null
@@ -872,18 +916,17 @@ X-Service-Token: replace-with-random-32-byte-token
 
 ### 8.8 预置种子术语
 
-| id | term | severity | category |
-|----|------|----------|----------|
-| `confidential` | 机密 | Error | Compliance |
-| `draft` | 草案 | Warning | Compliance |
-| `internal_only` | 内部使用 | Error | Compliance |
-| `tbd` | 待定 | Info | Editorial |
-| `ebitda` | EBITDA | Info | Financial |
-| `revenue` | 收入/Revenue | Info | Financial |
-| `npv` | NPV/净现值 | Info | Financial |
-| `irr` | IRR/内部收益率 | Info | Financial |
-| `pe_ratio` | P/E Ratio | Info | Financial |
-
+| id              | term           | severity | category   |
+| --------------- | -------------- | -------- | ---------- |
+| `confidential`  | 机密           | Error    | Compliance |
+| `draft`         | 草案           | Warning  | Compliance |
+| `internal_only` | 内部使用       | Error    | Compliance |
+| `tbd`           | 待定           | Info     | Editorial  |
+| `ebitda`        | EBITDA         | Info     | Financial  |
+| `revenue`       | 收入/Revenue   | Info     | Financial  |
+| `npv`           | NPV/净现值     | Info     | Financial  |
+| `irr`           | IRR/内部收益率 | Info     | Financial  |
+| `pe_ratio`      | P/E Ratio      | Info     | Financial  |
 
 ## 9. Sidecar REST API
 
@@ -921,7 +964,11 @@ Sidecar 健康检查。
 
 ```json
 [
-  { "commandId": "excel.fill-down", "displayName": "快速向下填充", "shortcut": "Ctrl+Alt+D" }
+  {
+    "commandId": "excel.fill-down",
+    "displayName": "快速向下填充",
+    "shortcut": "Ctrl+Alt+D"
+  }
 ]
 ```
 
@@ -936,7 +983,11 @@ Sidecar 健康检查。
   "traceId": "trace-id",
   "data": {
     "shortcuts": [
-      { "commandId": "excel.fill-down", "displayName": "快速向下填充", "shortcut": "Ctrl+Alt+D" }
+      {
+        "commandId": "excel.fill-down",
+        "displayName": "快速向下填充",
+        "shortcut": "Ctrl+Alt+D"
+      }
     ],
     "count": 1,
     "exportedAtUtc": "2026-06-06T10:00:00Z"
@@ -954,7 +1005,11 @@ Sidecar 健康检查。
 ```json
 {
   "shortcuts": [
-    { "commandId": "excel.fill-down", "displayName": "快速向下填充", "shortcut": "Ctrl+Alt+D" }
+    {
+      "commandId": "excel.fill-down",
+      "displayName": "快速向下填充",
+      "shortcut": "Ctrl+Alt+D"
+    }
   ]
 }
 ```
@@ -967,7 +1022,11 @@ Sidecar 健康检查。
   "data": {
     "imported": 1,
     "shortcuts": [
-      { "commandId": "excel.fill-down", "displayName": "快速向下填充", "shortcut": "Ctrl+Alt+D" }
+      {
+        "commandId": "excel.fill-down",
+        "displayName": "快速向下填充",
+        "shortcut": "Ctrl+Alt+D"
+      }
     ]
   },
   "error": null
@@ -992,11 +1051,11 @@ Sidecar 健康检查。
 
 字段说明：
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `commandId` | `string` | 是 | 命令 ID，如 `excel.model-check` |
-| `host` | `string` | 是 | 目标宿主：`excel`、`powerpoint`、`word` |
-| `arguments` | `object` | 否 | 命令参数（格式类型、年数等） |
+| 字段        | 类型     | 必填 | 说明                                    |
+| ----------- | -------- | ---- | --------------------------------------- |
+| `commandId` | `string` | 是   | 命令 ID，如 `excel.model-check`         |
+| `host`      | `string` | 是   | 目标宿主：`excel`、`powerpoint`、`word` |
+| `arguments` | `object` | 否   | 命令参数（格式类型、年数等）            |
 
 响应体 (`ApiEnvelope<SidecarExecuteResponse>`)：
 
@@ -1015,20 +1074,20 @@ Sidecar 健康检查。
 
 错误场景：
 
-| HTTP 状态 | 场景 |
-|-----------|------|
-| 400 | `commandId` 为空、`host` 值非法（合法值：`excel`、`powerpoint`、`word`）或该宿主不支持该命令 ID |
-| 503 | 目标 Office 应用未运行，或本机 ROT 指向不支持的 WPS/旧 Office COM 兼容对象（需启动 Microsoft Office 2016+/Office 2024 的 Excel/PowerPoint/Word） |
-| 500 | COM 操作执行异常（`/api/execute` catch 路径会记录错误日志） |
+| HTTP 状态 | 场景                                                                                                                                             |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 400       | `commandId` 为空、`host` 值非法（合法值：`excel`、`powerpoint`、`word`）或该宿主不支持该命令 ID                                                  |
+| 503       | 目标 Office 应用未运行，或本机 ROT 指向不支持的 WPS/旧 Office COM 兼容对象（需启动 Microsoft Office 2016+/Office 2024 的 Excel/PowerPoint/Word） |
+| 500       | COM 操作执行异常（`/api/execute` catch 路径会记录错误日志）                                                                                      |
 
 审计行为：
 
-| 路径 | 事件类型 | 严重级别 | 说明 |
-| --- | --- | --- | --- |
-| 执行成功 | `command.executed` | `Information` | 上报命令 ID、宿主和 `actorId=local-sidecar`；Backend 按 `TelemetryEnabled` 决定是否落库。 |
-| 输入校验失败 | `command.validation_failed` | `Warning` | 包含校验错误消息；不依赖 Office COM。 |
-| Office 未运行 | `command.failed` | `Warning` | 目标宿主未启动时记录，不阻塞结构化 503 响应。 |
-| COM 执行异常 | `command.failed` | `Error` | catch 路径记录异常消息。 |
+| 路径          | 事件类型                    | 严重级别      | 说明                                                                                      |
+| ------------- | --------------------------- | ------------- | ----------------------------------------------------------------------------------------- |
+| 执行成功      | `command.executed`          | `Information` | 上报命令 ID、宿主和 `actorId=local-sidecar`；Backend 按 `TelemetryEnabled` 决定是否落库。 |
+| 输入校验失败  | `command.validation_failed` | `Warning`     | 包含校验错误消息；不依赖 Office COM。                                                     |
+| Office 未运行 | `command.failed`            | `Warning`     | 目标宿主未启动时记录，不阻塞结构化 503 响应。                                             |
+| COM 执行异常  | `command.failed`            | `Error`       | catch 路径记录异常消息。                                                                  |
 
 > **当前实现说明**：`/api/execute` 已在入口处执行 `commandId` 非空验证、`host` 白名单过滤（`excel` / `powerpoint` / `word`）和宿主命令白名单验证。未知命令不再返回“成功 + 未知命令消息”，而是返回 `400 ApiEnvelope<SidecarExecuteResponse>`；错误时 `error` 与 `data.message` 同步描述失败原因。Sidecar 会异步上报 Backend `/api/audit-events`，Backend 按遥测策略决定是否落库；上报失败仅写日志，不影响本机命令响应。
 
@@ -1067,37 +1126,34 @@ Sidecar 健康检查。
 
 > **注意**：异常场景会通过 `ILogger` 记录 Warning 日志，并在 `data.error` 中返回简短错误信息。
 
-
 ### 9.7 Word 命令 ID
 
 通过 `POST /api/execute` 调用，`host` 设为 `"word"`：
 
-| commandId | 说明 |
-|-----------|------|
-| `word.build-due-diligence` | 生成尽调清单模板 |
-| `word.build-cim` | 生成保密信息备忘录 (CIM) 模板 |
-| `word.build-management-presentation` | 生成管理层演示大纲模板 |
-| `word.embed-excel-range` | 嵌入 Excel 区域到 Word |
-| `word.refresh-links` | 刷新 Word 文档中的 Excel 链接 |
-
-
+| commandId                            | 说明                          |
+| ------------------------------------ | ----------------------------- |
+| `word.build-due-diligence`           | 生成尽调清单模板              |
+| `word.build-cim`                     | 生成保密信息备忘录 (CIM) 模板 |
+| `word.build-management-presentation` | 生成管理层演示大纲模板        |
+| `word.embed-excel-range`             | 嵌入 Excel 区域到 Word        |
+| `word.refresh-links`                 | 刷新 Word 文档中的 Excel 链接 |
 
 #### `ppt.deck-check` 参数
 
 `arguments` 支持以下可选项：
 
-| 参数 | 说明 |
-| --- | --- |
-| `allowedFonts` | 允许字体，使用 `|` 分隔，例如 `Arial|Calibri|Microsoft YaHei`。 |
-| `forbiddenTerms` | 禁止术语，使用 `|` 分隔。 |
-| `checkLogos` | `true` 时检查每页是否存在名称包含 `logo` 或图片类型形状的 Logo。 |
-| `exportPdf` | `true` 时导出 Deck Check PDF 报告基础版。 |
-| `reportPath` | 可选 PDF 输出路径；省略时输出到 `%LOCALAPPDATA%\ModelForge\Reports\deck-check-*.pdf`。 |
-| `templateName` | 可选企业模板名称，写入报告和返回结果。 |
-| `reportTitle` | 可选报告标题，写入 HTML/PDF 报告和返回结果。 |
-| `brandPrimaryColor` / `brandAccentColor` | 可选品牌主色/强调色，接受 `#RRGGBB` 或 `RRGGBB`；非法值回退默认色。 |
-| `logoMaxLeft` / `logoMaxTop` | 可选 Logo 左上角最大偏移阈值（PowerPoint 点数）。 |
-| `logoMaxWidth` / `logoMaxHeight` | 可选 Logo 最大宽高阈值（PowerPoint 点数）。 |
+| 参数                                     | 说明                                                                                   |
+| ---------------------------------------- | -------------------------------------------------------------------------------------- | ------- | ------------------ |
+| `allowedFonts`                           | 允许字体，使用竖线分隔，例如 `Arial                                                    | Calibri | Microsoft YaHei`。 |
+| `forbiddenTerms`                         | 禁止术语，使用竖线分隔。                                                               |
+| `checkLogos`                             | `true` 时检查每页是否存在名称包含 `logo` 或图片类型形状的 Logo。                       |
+| `exportPdf`                              | `true` 时导出 Deck Check PDF 报告基础版。                                              |
+| `reportPath`                             | 可选 PDF 输出路径；省略时输出到 `%LOCALAPPDATA%\ModelForge\Reports\deck-check-*.pdf`。 |
+| `templateName`                           | 可选企业模板名称，写入报告和返回结果。                                                 |
+| `reportTitle`                            | 可选报告标题，写入 HTML/PDF 报告和返回结果。                                           |
+| `brandPrimaryColor` / `brandAccentColor` | 可选品牌主色/强调色，接受 `#RRGGBB` 或 `RRGGBB`；非法值回退默认色。                    |
+| `logoMaxLeft` / `logoMaxTop`             | 可选 Logo 左上角最大偏移阈值（PowerPoint 点数）。                                      |
+| `logoMaxWidth` / `logoMaxHeight`         | 可选 Logo 最大宽高阈值（PowerPoint 点数）。                                            |
 
 响应 JSON 的 `result` 字段为序列化后的 `DeckCheckReport`，包含 `SlidesScanned`、`FontIssues`、`TermIssues`、`MissingSlideNumbers`、`DenseTextSlides`、`LogoIssues`、`LogoPositionIssues`、`TemplateName`、`ReportTitle`、`BrandPrimaryColor`、`BrandAccentColor`、`TotalIssues`、`OverallStatus`、`ReportPath` 和 `Issues`。
 
@@ -1105,21 +1161,21 @@ Sidecar 健康检查。
 
 通过 `POST /api/execute` 调用，`host` 设为 `"powerpoint"`：
 
-| commandId | 说明 |
-|-----------|------|
-| `ppt.generate-agenda` | 自动生成目录幻灯片 |
-| `ppt.deck-check` | 演示文稿合规审计（字体、术语、编号、文本密度、Logo 存在性/位置检查、品牌化 HTML/PDF 报告基础版） |
-| `ppt.align-left` | 选中形状左对齐 |
-| `ppt.align-center` | 选中形状水平居中对齐 |
-| `ppt.align-right` | 选中形状右对齐 |
-| `ppt.align-top` | 选中形状顶端对齐 |
-| `ppt.align-middle` | 选中形状垂直居中对齐 |
-| `ppt.align-bottom` | 选中形状底端对齐 |
-| `ppt.distribute-horizontal` | 选中形状水平均分 |
-| `ppt.distribute-vertical` | 选中形状垂直均分 |
-| `ppt.unify-size` | 选中形状统一尺寸 |
-| `ppt.unify-width` | 选中形状统一宽度 |
-| `ppt.unify-height` | 选中形状统一高度 |
+| commandId                   | 说明                                                                                             |
+| --------------------------- | ------------------------------------------------------------------------------------------------ |
+| `ppt.generate-agenda`       | 自动生成目录幻灯片                                                                               |
+| `ppt.deck-check`            | 演示文稿合规审计（字体、术语、编号、文本密度、Logo 存在性/位置检查、品牌化 HTML/PDF 报告基础版） |
+| `ppt.align-left`            | 选中形状左对齐                                                                                   |
+| `ppt.align-center`          | 选中形状水平居中对齐                                                                             |
+| `ppt.align-right`           | 选中形状右对齐                                                                                   |
+| `ppt.align-top`             | 选中形状顶端对齐                                                                                 |
+| `ppt.align-middle`          | 选中形状垂直居中对齐                                                                             |
+| `ppt.align-bottom`          | 选中形状底端对齐                                                                                 |
+| `ppt.distribute-horizontal` | 选中形状水平均分                                                                                 |
+| `ppt.distribute-vertical`   | 选中形状垂直均分                                                                                 |
+| `ppt.unify-size`            | 选中形状统一尺寸                                                                                 |
+| `ppt.unify-width`           | 选中形状统一宽度                                                                                 |
+| `ppt.unify-height`          | 选中形状统一高度                                                                                 |
 
 ## 10. 安全与兼容性边界
 

@@ -86,7 +86,7 @@ describe('ApiClient', () => {
         version: {
           product: 'ModelForge',
           component: 'Backend',
-          version: '0.1.1-stage1',
+          version: '0.1.3',
           apiVersion: 'v1',
           buildTimestampUtc: '2026-06-06T00:00:00Z',
         },

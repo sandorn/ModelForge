@@ -1,30 +1,37 @@
 # ModelForge Changelog
 
-## [Unreleased] — Phase A 收尾
+## [Unreleased]
 
 ### 新增
 
+### 变更
+
+### 已修复
+
+## 0.1.3 (2026-06-07)
 
 ### 新增
 
 #### 数据库
+
 - 多 Provider 支持: `inmemory` / `sqlite` / `postgres`，通过 `DatabaseProvider` 环境变量切换
 - Npgsql 集成: Docker Compose 自动使用 PostgreSQL
 - `SqliteLinkMetadataStore`: 链接元数据 SQLite 持久化
 
 #### API
+
 - `GET /api/admin/audit-events?count=50`: 管理员审计事件查询端点
 - `GET /health`: 增强，返回数据库连接状态
 
-
-
 #### 持久化
+
 - EF Core + SQLite: `ModelForgeDbContext` 含 4 张表（Configurations, AuditEvents, LinkMetadata, DictionaryTerms）
 - `SqliteConfigurationStore`: 配置持久化（替代 InMemoryConfigurationStore）
 - `SqliteAuditSink`: 审计事件持久化（替代 InMemoryAuditSink）
-- 通过 `UseSqlite=true` 配置切换（默认仍为内存模式以兼容现有测试）
+- 通过 `DatabaseProvider=inmemory|sqlite|postgres` 配置切换（默认仍为内存模式以兼容现有测试）
 
 #### 部署
+
 - `.env.example`: Docker 环境变量模板
 - `scripts/rebuild-publish.ps1`: 一键重生成构建产物脚本
 - `docker-compose.yml`: 新增 `env_file` 支持
@@ -34,15 +41,18 @@
 - `ModelForge.msi`: 当前构建约 83 MB，已通过 `wix msi validate`
 
 #### 测试覆盖
+
 - Backend 单元测试: JwtService, UserStore, ConfigurationStore, AuditSink, AuditRetention, TelemetryPolicy, CommandCatalog, DictionaryService, LinkMetadataStore, RoleDefinitions (60 tests)
 - Sidecar 单元测试扩展: CellClassifier, ToggleSign, StatisticsInserter, ModelCheckLogic, ShortcutRegistry 原子替换, 39 个默认快捷键唯一性, LinkRefreshPlanner, DeckCheck PDF/Logo/品牌报告模板, BackendBridgeClient 服务级字典读取, Sidecar 本地令牌鉴权, ShapeTools 几何算法, Office COM 运行时校验 (170 non-COM tests with `FullyQualifiedName!~Com`; full Sidecar project includes COM tests)
 - Web Add-in 前端测试: authStore, contracts, bridgeStore, ApiClient, LoginPage, App command groups, SidecarClient, AdminConsole, AiwaChat, uiAudit, Office manifest/function-file + Ribbon 可见反馈 + DeckCheck PDF/Logo parsing + Sidecar 令牌头/本地保存 + Admin 角色权限/审计摘要/筛选/下钻/保留策略解包 (95 tests, Vitest + jsdom)
 - E2E 覆盖新增认证审计、Admin 用户生命周期、管理写操作审计、角色权限只读矩阵、审计统计摘要、审计保留策略、遥测关闭行为、诊断摘要/诊断包、Corporate Dictionary 导入/导出、链接元数据刷新请求、Sidecar 快捷键导入/导出和 Sidecar 执行审计自动上报：登录、登录成功/失败审计、列表、新增、启停、重复用户、非法创建请求、角色权限、审计摘要、审计保留 dry-run/校验、管理用户/配置/字典写操作审计、遥测关闭、诊断摘要、术语导入/导出、空导入错误、链接刷新请求、快捷键导入/导出、冲突回滚和 Sidecar 校验失败审计传播
 
 #### CI/CD
+
 - CI 管道: `dotnet run` → `dotnet test`, 新增 Solution 级构建 + 全量测试 Job
 
 #### API
+
 - Sidecar `/api/execute` 输入校验已落地（CommandId 非空, Host 合法性），并统一为 `ApiEnvelope<SidecarExecuteResponse>` 响应
 - Sidecar `/api/status` 返回 `ApiEnvelope<SidecarStatusResponse>`；`/api/excel/info` 作为兼容别名保留，异常路径记录 Warning 日志
 - Sidecar 快捷键配置 API：新增 `/api/shortcuts/export` 与 `/api/shortcuts/import`，返回 `ApiEnvelope<ShortcutExportResponse>` / `ApiEnvelope<ShortcutImportResponse>`，导入冲突时保持现有注册表不变；默认映射覆盖当前 39 个已实现 Excel/PPT/Word 命令并修复 `Names Manager` 默认键冲突
@@ -78,14 +88,15 @@
 - Office Ribbon 真实侧载首轮巡检：Excel/Word/PowerPoint 均可从共享目录加载 `ModelForge`；巡检发现的按钮无反馈和 PPT 分布算法问题已进入本轮修复
 
 #### 文档
+
 - `docs/PhaseA-Demo-Script.md`: 三链路联调演示脚本 (7 步)
 - `docs/API契约.md`: 新增 Sidecar REST API 章节 (4 端点)
 - `docs/安全自查清单.md`: 新增内测/试点发布安全门禁清单
 - `docs/Office-Add-in-企业分发指南.md`: 新增 Microsoft 365 集中部署、网络共享测试和回滚流程
-- `docs/发布说明-0.1.1-stage1.md`: 新增试点候选版发布说明、验证结果、已知限制和回滚步骤
+- `docs/发布说明-0.1.3.md`: 新增试点候选版发布说明、验证结果、已知限制和回滚步骤
 - `docs/用户指南.md` / `docs/管理员指南.md`: 同步链接刷新、Corporate Dictionary CSV/XLSX 模板和发布验证说明
 - `scripts/generate-samples.ps1`: 样例文件自动生成脚本
-- 当前版本提升至 `0.1.1-stage1` / MSI `0.1.1.0`
+- 当前版本提升至 `0.1.3` / MSI `0.1.3.0`
 
 ### 变更
 
@@ -128,43 +139,45 @@
 
 ### 新增
 
-
-### 新增
-
 #### 数据库
+
 - 多 Provider 支持: `inmemory` / `sqlite` / `postgres`，通过 `DatabaseProvider` 环境变量切换
 - Npgsql 集成: Docker Compose 自动使用 PostgreSQL
 - `SqliteLinkMetadataStore`: 链接元数据 SQLite 持久化
 
 #### API
+
 - `GET /api/admin/audit-events?count=50`: 管理员审计事件查询端点
 - `GET /health`: 增强，返回数据库连接状态
 
-
-
 #### 持久化
+
 - EF Core + SQLite: `ModelForgeDbContext` 含 4 张表（Configurations, AuditEvents, LinkMetadata, DictionaryTerms）
 - `SqliteConfigurationStore`: 配置持久化（替代 InMemoryConfigurationStore）
 - `SqliteAuditSink`: 审计事件持久化（替代 InMemoryAuditSink）
 - 通过 `UseSqlite=true` 配置切换（默认仍为内存模式以兼容现有测试）
 
 #### 部署
+
 - `.env.example`: Docker 环境变量模板
 - `scripts/rebuild-publish.ps1`: 一键重生成构建产物脚本
 - `docker-compose.yml`: 新增 `env_file` 支持
 
 #### Sidecar (.NET 10 Worker Service)
+
 - Win32 全局键盘钩子 (WH_KEYBOARD_LL)，20 个快捷键注册
 - .NET 原生 COM Interop (oleaut32!GetActiveObject + dynamic)
 - 20+ 个命令已有基础实现/注册；部分命令仍存在用户路径或完整产品化缺口
 - 5 REST 端点: `/health`, `/api/shortcuts`, `/api/execute`, `/api/excel/info`
 
 #### Backend (.NET 10 ASP.NET Core)
+
 - `/health`, `/api/version`, `/api/commands`, `/api/commands/dispatch`
 - `/api/config/{scope}`, `/api/audit-events`, `/api/links`
 - 契约升级: `CommandExecutionTarget.Sidecar`, 全线 DTO 同步
 
 #### Web Add-in (React 18 + Fluent UI 9 + Vite 6)
+
 - TaskPane 主布局: 6 面板导航 (总览/命令/Excel/审计/AIWA/管理)
 - Dashboard 状态卡片 (Backend + Sidecar + Command 统计)
 - Command Panel: 按功能分组执行
@@ -174,9 +187,11 @@
 - Sidecar HTTP 客户端 + function-file.html
 
 #### 测试
+
 - 51 单元测试 (ChordParser 21 + ShortcutRegistry 8 + PowerTools 22)
 
 #### 安装器
+
 - WiX v5 MSI 项目 (Sidecar + Backend 双 Windows Service)
 - `build-installer.ps1` 一键发布脚本
 
@@ -194,3 +209,4 @@
 - NetOfficeFw 仅支持 .NET Framework → 切换为 .NET 原生 COM Interop
 - DCF 模板 `InlineData` 编译时表达式 → 使用 `const uint` 运算
 - `static readonly` 作为 `ref` 参数 → 局部变量复制
+
