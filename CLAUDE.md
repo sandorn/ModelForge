@@ -183,7 +183,7 @@ cd src/web && npm run build
 | 管理员指南 | `docs/管理员指南.md` | MSI、服务、Admin API、词典模板 |
 | 安全自查 | `docs/安全自查清单.md` | 内测/试点发布安全门禁 |
 | Add-in 分发 | `docs/Office-Add-in-企业分发指南.md` | Microsoft 365 集中部署与回滚 |
-| 发布说明 | `docs/发布说明-0.1.3.md` | 试点候选版验证、限制与回滚 |
+| 发布说明 | `docs/发布说明-0.2.0.md` | 试点候选版验证、限制与回滚 |
 | 版权信息 | `docs/版权信息.md` | 版权声明与许可条款 |
 | 用户指南 | `docs/用户指南.md` | 本地启动、侧载、调试与排查 |
 | CHANGELOG | `docs/CHANGELOG.md` | 版本变更与架构迁移记录 |

@@ -17,8 +17,8 @@ public class SmokeTests
         var commands = catalog.GetAll();
 
         var excelCommands = commands.Where(c => c.Host == OfficeHost.Excel).ToList();
-        Assert.True(excelCommands.Count >= 20,
-            $"Phase A requires at least 20 Excel commands. Got {excelCommands.Count}.");
+        Assert.True(excelCommands.Count >= 45,
+            $"Expected at least 45 Excel commands. Got {excelCommands.Count}.");
     }
 
     [Fact]

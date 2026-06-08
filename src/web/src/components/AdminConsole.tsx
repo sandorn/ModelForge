@@ -452,6 +452,8 @@ function UserManagement() {
   const [newName, setNewName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [editingUser, setEditingUser] = useState<AdminUserResponse | null>(null);
+  const [editRole, setEditRole] = useState('Analyst');
 
   const loadUsers = async () => {
     setLoading(true);
@@ -493,6 +495,19 @@ function UserManagement() {
     }
   };
 
+  const deleteUser = async (id: string) => {
+    setError(null);
+    try { await apiClient.deleteAdminUser(id); await loadUsers(); }
+    catch (err) { setError(err instanceof Error ? err.message : '删除用户失败。'); }
+  };
+
+  const updateUser = async () => {
+    if (!editingUser) return;
+    setError(null);
+    try { await apiClient.updateAdminUser(editingUser.id, { role: editRole }); setEditingUser(null); await loadUsers(); }
+    catch (err) { setError(err instanceof Error ? err.message : '更新用户失败。'); }
+  };
+
   if (loading) return <Spinner label="正在加载用户..." />;
 
   return (
@@ -520,11 +535,40 @@ function UserManagement() {
               <TableCell>{user.role}</TableCell>
               <TableCell><Badge appearance="outline">{user.isActive ? '启用' : '禁用'}</Badge></TableCell>
               <TableCell><Text size={100}>{formatDate(user.createdAt)}</Text></TableCell>
-              <TableCell><Button size="small" onClick={() => void toggleStatus(user.id)}>切换</Button></TableCell>
+              <TableCell>
+                <div style={{ display: 'flex', gap: '4px' }}>
+                  <Button size="small" onClick={() => void toggleStatus(user.id)}>切换</Button>
+                  <Button size="small" onClick={() => { setEditingUser(user); setEditRole(user.role); }}>编辑</Button>
+                  <Button size="small" onClick={() => { if (confirm(`确认删除用户 ${user.username}?`)) void deleteUser(user.id); }}>删除</Button>
+                </div>
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+
+      {editingUser && (
+        <div className="omnibar-overlay" onClick={() => setEditingUser(null)}>
+          <Card className="omnibar-modal" onClick={e => e.stopPropagation()} style={{ padding: '1rem', maxWidth: '360px' }}>
+            <CardHeader header={<Text weight="semibold">编辑用户: {editingUser.username}</Text>} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label>
+                <Text size={200}>角色</Text>
+                <select value={editRole} onChange={e => setEditRole(e.target.value)}
+                  style={{ width: '100%', padding: '6px', borderRadius: '4px', border: '1px solid #ccc', marginTop: '4px' }}>
+                  <option value="Admin">Admin</option>
+                  <option value="Analyst">Analyst</option>
+                  <option value="Auditor">Auditor</option>
+                </select>
+              </label>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+                <Button onClick={() => setEditingUser(null)}>取消</Button>
+                <Button appearance="primary" onClick={() => void updateUser()}>保存</Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </Card>
   );
 }

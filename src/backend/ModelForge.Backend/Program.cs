@@ -1,22 +1,40 @@
-﻿using System.Security.Claims;
+﻿using System.Collections.Concurrent;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.IdentityModel.Tokens;
 using ModelForge.Backend.Auth;
 using ModelForge.Backend.Data;
 using ModelForge.Backend.Services;
 using ModelForge.Contracts;
+using Serilog;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ── Serilog 日志配置 ──
+var logPath = Path.Combine(
+    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+    "ModelForge", "logs", "backend-.log");
+Serilog.Log.Logger = new Serilog.LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(logPath, rollingInterval: Serilog.RollingInterval.Day, retainedFileCountLimit: 7,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .CreateLogger();
+builder.Logging.AddSerilog();
+
 builder.Host.UseWindowsService(options =>
 {
     options.ServiceName = "ModelForge.Backend";
 });
 
-var logger = LoggerFactory.Create(c => c.AddConsole()).CreateLogger("ModelForge.Backend");
+var loggerFactory = LoggerFactory.Create(b => b.AddSerilog());
+var logger = loggerFactory.CreateLogger("ModelForge.Backend");
 
 // ── JWT Auth Configuration ──
 var jwtOptions = builder.Configuration.GetSection("Jwt").Get<JwtOptions>() ?? new JwtOptions();
@@ -99,6 +117,7 @@ builder.Services.AddSingleton<ICommandCatalog, CommandCatalog>();
 builder.Services.AddSingleton<ICommandDispatcher, InMemoryCommandDispatcher>();
 builder.Services.AddSingleton<IDictionaryService, InMemoryDictionaryService>();
 builder.Services.AddSingleton<TelemetryPolicy>();
+builder.Services.AddHttpClient<AiwaService>();
 
 var app = builder.Build();
 
@@ -277,6 +296,47 @@ admin.MapPut("/users/{userId}/toggle", async (HttpContext ctx, string userId, In
         new AdminUserToggleResponse { UserId = userId, Active = nextActive },
         GetTraceId(ctx)));
 });
+admin.MapPut("/users/{userId}", async (HttpContext ctx, string userId, AdminUserUpdateRequest req, InMemoryUserStore store, IAuditSink auditSink) =>
+{
+    try
+    {
+        var user = store.UpdateUser(userId, req.Password, req.Role);
+        if (user is null)
+            return Results.NotFound(ApiEnvelope<object>.Failure($"User '{userId}' not found.", GetTraceId(ctx)));
+
+        await RecordBackendAuditAsync(
+            ctx, auditSink, logger, "admin.user.updated",
+            AuditSeverity.Information, resourceId: userId,
+            metadata: new Dictionary<string, string>
+            {
+                ["username"] = user.Username,
+                ["role"] = user.Role
+            });
+
+        return Results.Ok(ApiEnvelope<AdminUserResponse>.Success(ToAdminUserResponse(user), GetTraceId(ctx)));
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(ApiEnvelope<object>.Failure(ex.Message, GetTraceId(ctx)));
+    }
+});
+admin.MapDelete("/users/{userId}", async (HttpContext ctx, string userId, InMemoryUserStore store, IAuditSink auditSink) =>
+{
+    var user = store.GetById(userId);
+    if (user is null)
+        return Results.NotFound(ApiEnvelope<object>.Failure($"User '{userId}' not found.", GetTraceId(ctx)));
+
+    store.DeleteUser(userId);
+    await RecordBackendAuditAsync(
+        ctx, auditSink, logger, "admin.user.deleted",
+        AuditSeverity.Warning, resourceId: userId,
+        metadata: new Dictionary<string, string>
+        {
+            ["username"] = user.Username
+        });
+
+    return Results.Ok(ApiEnvelope<object>.Success(new { deleted = userId }, GetTraceId(ctx)));
+});
 admin.MapGet("/roles", (HttpContext ctx) =>
     Results.Ok(ApiEnvelope<AdminRolesResponse>.Success(
         new AdminRolesResponse
@@ -286,11 +346,33 @@ admin.MapGet("/roles", (HttpContext ctx) =>
                 {
                     Role = role,
                     Permissions = RoleDefinitions.GetPermissions(role),
-                    BuiltIn = true
+                    BuiltIn = RoleDefinitions.BuiltInRoles.Contains(role)
                 })
                 .ToArray()
         },
         GetTraceId(ctx))));
+admin.MapPost("/roles", async (HttpContext ctx, AdminRoleCreateRequest req, IAuditSink auditSink) =>
+{
+    if (string.IsNullOrWhiteSpace(req.Role) || req.Permissions is null || req.Permissions.Length == 0)
+        return Results.BadRequest(ApiEnvelope<object>.Failure("role and permissions are required.", GetTraceId(ctx)));
+
+    if (!RoleDefinitions.AddCustomRole(req.Role, req.Permissions))
+        return Results.Conflict(ApiEnvelope<object>.Failure($"Role '{req.Role}' already exists or is built-in.", GetTraceId(ctx)));
+
+    await RecordBackendAuditAsync(ctx, auditSink, logger, "admin.role.created",
+        AuditSeverity.Warning, resourceId: req.Role);
+    return Results.Created($"/api/admin/roles/{req.Role}",
+        ApiEnvelope<object>.Success(new { role = req.Role, permissions = req.Permissions }, GetTraceId(ctx)));
+});
+admin.MapDelete("/roles/{roleName}", async (HttpContext ctx, string roleName, IAuditSink auditSink) =>
+{
+    if (!RoleDefinitions.RemoveCustomRole(roleName))
+        return Results.NotFound(ApiEnvelope<object>.Failure($"Role '{roleName}' not found or is built-in.", GetTraceId(ctx)));
+
+    await RecordBackendAuditAsync(ctx, auditSink, logger, "admin.role.deleted",
+        AuditSeverity.Warning, resourceId: roleName);
+    return Results.Ok(ApiEnvelope<object>.Success(new { deleted = roleName }, GetTraceId(ctx)));
+});
 admin.MapGet("/audit-events", async (
     HttpContext ctx,
     IAuditSink auditSink,
@@ -726,6 +808,215 @@ dict.MapDelete("/{id}", async (HttpContext ctx, string id, IDictionaryService se
 dict.MapPost("/check", (HttpContext ctx, DictionaryCheckRequest request, IDictionaryService service) =>
     Results.Ok(ApiEnvelope<DictionaryCheckResponse>.Success(service.Check(request), GetTraceId(ctx))));
 
+// ── Dashboard Endpoint ──
+app.MapGet("/api/dashboard/summary", async (HttpContext ctx, IAuditSink auditSink, int? hours) =>
+{
+    var windowHours = Math.Clamp(hours ?? 168, 1, 720);
+    var since = DateTimeOffset.UtcNow.AddHours(-windowHours);
+    var events = await auditSink.GetRecentAsync(5000, ctx.RequestAborted);
+    var windowEvents = events
+        .Where(e => e.Response.RecordedAtUtc >= since)
+        .ToArray();
+
+    var topCommands = windowEvents
+        .Where(e => !string.IsNullOrWhiteSpace(e.Request.CommandId))
+        .GroupBy(e => e.Request.CommandId!)
+        .Select(g => new DashboardTopCommand { CommandId = g.Key, Count = g.Count() })
+        .OrderByDescending(c => c.Count)
+        .Take(10)
+        .ToList();
+
+    var byHost = windowEvents
+        .GroupBy(e => e.Request.Host.ToString())
+        .Select(g => new DashboardHostBucket { Host = g.Key, Count = g.Count() })
+        .OrderByDescending(b => b.Count)
+        .ToList();
+
+    var activeUsers = windowEvents
+        .Where(e => !string.IsNullOrWhiteSpace(e.Request.ActorId) && e.Request.ActorId != "anonymous")
+        .Select(e => e.Request.ActorId!)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Count();
+
+    // 时间线：按天聚合
+    var bucketCount = Math.Max(1, windowHours / 24);
+    var bucketSpan = TimeSpan.FromHours(Math.Max(1, windowHours / bucketCount));
+    var timeline = new List<DashboardTimelineBucket>();
+    for (var bucketStart = since; bucketStart < DateTimeOffset.UtcNow; bucketStart = bucketStart.Add(bucketSpan))
+    {
+        var bucketEnd = bucketStart.Add(bucketSpan);
+        timeline.Add(new DashboardTimelineBucket
+        {
+            Label = bucketStart.ToString("MM-dd HH:mm"),
+            Count = windowEvents.Count(e => e.Response.RecordedAtUtc >= bucketStart && e.Response.RecordedAtUtc < bucketEnd)
+        });
+    }
+
+    var response = new DashboardSummaryResponse
+    {
+        GeneratedAtUtc = DateTimeOffset.UtcNow,
+        WindowHours = windowHours,
+        TotalEvents = windowEvents.Length,
+        ActiveUserCount = activeUsers,
+        TopCommands = topCommands,
+        ByHost = byHost,
+        Timeline = timeline
+    };
+
+    return Results.Ok(ApiEnvelope<DashboardSummaryResponse>.Success(response, GetTraceId(ctx)));
+});
+
+// ── Version Management Endpoint ──
+app.MapGet("/api/versions", (HttpContext ctx) =>
+{
+    var versions = new[]
+    {
+        new { version = "0.1.3", date = "2026-06-07", status = "current", notes = "Phase D: 146 commands, 337 tests, 16 panels" },
+        new { version = "0.1.1", date = "2026-06-06", status = "previous", notes = "Initial pilot candidate" },
+        new { version = "0.1.0", date = "2026-06-03", status = "previous", notes = "Phase A+B+C+D initial delivery" }
+    };
+    return Results.Ok(ApiEnvelope<object>.Success(new { versions, current = "0.1.3" }, GetTraceId(ctx)));
+});
+
+// ── User Groups Endpoint ──
+var groupsStore = new ConcurrentDictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
+admin.MapGet("/groups", (HttpContext ctx) =>
+{
+    var result = groupsStore.Select(kvp => new { name = kvp.Key, members = kvp.Value.ToArray(), count = kvp.Value.Count });
+    return Results.Ok(ApiEnvelope<object>.Success(new { groups = result }, GetTraceId(ctx)));
+});
+admin.MapPost("/groups", async (HttpContext ctx, IAuditSink auditSink) =>
+{
+    var body = await ctx.Request.ReadFromJsonAsync<JsonElement>();
+    var name = body.TryGetProperty("name", out var n) ? n.GetString() : null;
+    var members = body.TryGetProperty("members", out var m) ? m.EnumerateArray().Select(e => e.GetString()!).ToArray() : Array.Empty<string>();
+    if (string.IsNullOrWhiteSpace(name)) return Results.BadRequest(ApiEnvelope<object>.Failure("name is required.", GetTraceId(ctx)));
+
+    groupsStore[name] = new HashSet<string>(members, StringComparer.OrdinalIgnoreCase);
+    await RecordBackendAuditAsync(ctx, auditSink, logger, "admin.group.updated",
+        AuditSeverity.Warning, resourceId: name,
+        metadata: new Dictionary<string, string> { ["members"] = string.Join(",", members) });
+    return Results.Ok(ApiEnvelope<object>.Success(new { name, members, count = members.Length }, GetTraceId(ctx)));
+});
+admin.MapDelete("/groups/{groupName}", async (HttpContext ctx, string groupName, IAuditSink auditSink) =>
+{
+    if (!groupsStore.TryRemove(groupName, out _))
+        return Results.NotFound(ApiEnvelope<object>.Failure($"Group '{groupName}' not found.", GetTraceId(ctx)));
+    await RecordBackendAuditAsync(ctx, auditSink, logger, "admin.group.deleted", AuditSeverity.Warning, resourceId: groupName);
+    return Results.Ok(ApiEnvelope<object>.Success(new { deleted = groupName }, GetTraceId(ctx)));
+});
+
+// ── Audit Integrity Verification ──
+admin.MapGet("/audit-events/verify", async (HttpContext ctx, IAuditSink auditSink) =>
+{
+    var events = await auditSink.GetRecentAsync(1000, ctx.RequestAborted);
+    var ordered = events.OrderBy(e => e.Response.RecordedAtUtc).ToArray();
+    int gaps = 0;
+    for (int i = 1; i < ordered.Length; i++)
+    {
+        if (ordered[i].Response.RecordedAtUtc < ordered[i - 1].Response.RecordedAtUtc)
+            gaps++;
+    }
+    return Results.Ok(ApiEnvelope<object>.Success(new
+    {
+        totalEvents = ordered.Length,
+        hasGaps = gaps > 0,
+        gapCount = gaps,
+        oldestEvent = ordered.FirstOrDefault().Response.RecordedAtUtc,
+        newestEvent = ordered.LastOrDefault().Response.RecordedAtUtc,
+        status = gaps == 0 ? "intact" : "gaps_detected"
+    }, GetTraceId(ctx)));
+});
+
+// ── Brand Template Endpoint ──
+var brand = app.MapGroup("/api/brand");
+brand.MapGet("/", async (HttpContext ctx, IConfigurationStore store) =>
+{
+    var template = await store.GetAsync("brand-template", ctx.RequestAborted);
+    return Results.Ok(ApiEnvelope<ConfigurationResponse>.Success(template, GetTraceId(ctx)));
+});
+brand.MapPut("/", async (HttpContext ctx, IConfigurationStore store, IAuditSink auditSink, ConfigurationUpsertRequest req) =>
+{
+    var result = await store.UpsertAsync("brand-template", req, ctx.RequestAborted);
+    await RecordBackendAuditAsync(ctx, auditSink, logger, "admin.brand.updated",
+        AuditSeverity.Information, resourceId: "brand-template");
+    return Results.Ok(ApiEnvelope<ConfigurationResponse>.Success(result, GetTraceId(ctx)));
+}).RequireAuthorization("AdminOnly");
+
+// ── Clause Library Endpoint ──
+var clauses = app.MapGroup("/api/clauses");
+clauses.MapGet("/", async (HttpContext ctx, IConfigurationStore store) =>
+{
+    var lib = await store.GetAsync("clause-library", ctx.RequestAborted);
+    return Results.Ok(ApiEnvelope<ConfigurationResponse>.Success(lib, GetTraceId(ctx)));
+});
+clauses.MapPut("/", async (HttpContext ctx, IConfigurationStore store, IAuditSink auditSink, ConfigurationUpsertRequest req) =>
+{
+    var result = await store.UpsertAsync("clause-library", req, ctx.RequestAborted);
+    await RecordBackendAuditAsync(ctx, auditSink, logger, "admin.clause.updated",
+        AuditSeverity.Information, resourceId: "clause-library");
+    return Results.Ok(ApiEnvelope<ConfigurationResponse>.Success(result, GetTraceId(ctx)));
+}).RequireAuthorization("AdminOnly");
+
+// ── Enterprise Policy Endpoint ──
+app.MapGet("/api/policy", async (HttpContext ctx, IConfigurationStore configStore) =>
+{
+    var policy = await configStore.GetAsync("enterprise-policy", ctx.RequestAborted);
+    return Results.Ok(ApiEnvelope<ConfigurationResponse>.Success(policy, GetTraceId(ctx)));
+});
+
+app.MapPut("/api/policy", async (HttpContext ctx, IConfigurationStore configStore, IAuditSink auditSink, ConfigurationUpsertRequest req) =>
+{
+    var result = await configStore.UpsertAsync("enterprise-policy", req, ctx.RequestAborted);
+    await RecordBackendAuditAsync(ctx, auditSink, logger, "admin.policy.updated",
+        AuditSeverity.Warning, resourceId: "enterprise-policy",
+        metadata: new Dictionary<string, string> { ["updatedBy"] = req.UpdatedBy ?? "admin" });
+    return Results.Ok(ApiEnvelope<ConfigurationResponse>.Success(result, GetTraceId(ctx)));
+}).RequireAuthorization("AdminOnly");
+
+// ── AIWA Config Endpoint ──
+app.MapGet("/api/aiwa/config", (HttpContext ctx, AiwaService aiwa) =>
+{
+    return Results.Ok(ApiEnvelope<object>.Success(new
+    {
+        provider = aiwa.Provider,
+        model = aiwa.Model,
+        modes = new[] { "summarize", "expand", "rewrite", "proofread", "translate", "explain" }
+    }, GetTraceId(ctx)));
+});
+
+// ── AIWA Chat Endpoint ──
+app.MapPost("/api/aiwa/chat", async (HttpContext ctx, AiwaChatRequest request, AiwaService aiwa) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Message))
+        return Results.BadRequest(ApiEnvelope<object>.Failure("message is required.", GetTraceId(ctx)));
+
+    var mode = string.IsNullOrWhiteSpace(request.Mode) ? "chat" : request.Mode.Trim().ToLowerInvariant();
+    try
+    {
+        var response = await aiwa.ChatAsync(request.Message, mode, ctx.RequestAborted);
+        return Results.Ok(ApiEnvelope<AiwaChatResponse>.Success(new AiwaChatResponse
+        {
+            Response = response,
+            Mode = mode,
+            Model = aiwa.Model,
+            FallbackMock = aiwa.Provider == "mock"
+        }, GetTraceId(ctx)));
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "AIWA API call failed, falling back to mock mode");
+        var mockResponse = GetMockResponse(request.Message, mode);
+        return Results.Ok(ApiEnvelope<AiwaChatResponse>.Success(new AiwaChatResponse
+        {
+            Response = mockResponse,
+            Mode = mode,
+            Model = "mock-fallback",
+            FallbackMock = true
+        }, GetTraceId(ctx)));
+    }
+});
+
 app.Run();
 
 static string GetTraceId(HttpContext context) =>
@@ -1108,5 +1399,15 @@ static string CsvEscape(string value)
         return $"\"{value.Replace("\"", "\"\"")}\"";
     return value;
 }
+
+static string GetMockResponse(string message, string mode) => mode switch
+{
+    "summarize" => $"【Mock 摘要】已分析 {message.Length} 个字符的输入内容。核心要点：1) 财务数据概况，2) 关键指标趋势，3) 风险提示。（Ollama 不可达，当前为 Mock 响应。）",
+    "expand" => $"【Mock 展开】输入内容深度分析：从行业对标、历史趋势和可比交易三个维度展开。原文前50字: {message[..Math.Min(message.Length, 50)]}。（Ollama 不可达，当前为 Mock 响应。）",
+    "rewrite" => $"【Mock 改写】原文已润色为正式投资银行风格：{message}（Ollama 不可达，当前为 Mock 响应。）",
+    "proofread" => $"【Mock 校对】已检查 {message.Split(' ').Length} 个词。未发现明显语法错误。建议：1) 检查数字格式一致性，2) 确认专有名词拼写。（Ollama 不可达，当前为 Mock 响应。）",
+    "translate" => $"【Mock 翻译】原文翻译结果：{message}（Ollama 不可达，当前为 Mock 响应。）",
+    _ => $"【Mock 响应】已收到你的消息（{message.Length} 字符）。当前 AI 后端 (Ollama) 不可达，返回 Mock 响应。请确保 Ollama 正在运行或设置 AIWA:OllamaUrl 配置。"
+};
 
 internal sealed record DatabaseDiagnostics(string Provider, bool Connected, string? Error);

@@ -25,7 +25,7 @@ ModelForge 采用 **Hybrid Sidecar** 架构：
 
 ## 当前状态
 
-当前版本为 `0.1.3`，已完成 Sidecar + Web Add-in + Backend 基础设施，并进入 Phase D 打磨部署阶段：
+当前版本为 `0.2.0`，已完成 Sidecar + Web Add-in + Backend 基础设施，并进入 Phase D 打磨部署阶段：
 
 1. Sidecar 基础框架 + 原生 COM 互操作层，支持 Excel / PowerPoint / Word 本机命令路由。
 2. 当前 39 个已实现 Excel / PowerPoint / Word 命令的默认快捷键映射，支持 Sidecar 导入/导出与 Web 配置界面。

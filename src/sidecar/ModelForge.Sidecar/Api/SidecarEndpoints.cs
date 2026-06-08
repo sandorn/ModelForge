@@ -3,6 +3,7 @@ using ModelForge.Sidecar.Commands;
 using ModelForge.Sidecar.Formula;
 using ModelForge.Sidecar.Interop;
 using ModelForge.Sidecar.Linking;
+using ModelForge.Sidecar.Word;
 using ModelForge.Sidecar.ModelCheck;
 using ModelForge.Sidecar.Optimization;
 using ModelForge.Sidecar.PowerPoint;
@@ -33,7 +34,50 @@ public static class SidecarEndpoints
         PptCommandIds.DistributeVertical,
         PptCommandIds.UnifyWidth,
         PptCommandIds.UnifyHeight,
-        PptCommandIds.UnifySize
+        PptCommandIds.UnifySize,
+        PptCommandIds.HarveyBall,
+        PptCommandIds.ProgressBar,
+        PptCommandIds.RatingStars,
+        PptCommandIds.RotateClockwise,
+        PptCommandIds.RotateCounterClockwise,
+        PptCommandIds.SwapPositions,
+        PptCommandIds.AddSlideNumbers,
+        PptCommandIds.RemoveSlideNumbers,
+        PptCommandIds.InsertTombstone,
+        PptCommandIds.SearchByFont,
+        PptCommandIds.ReplaceFont,
+        PptCommandIds.SearchByFontSize,
+        PptCommandIds.ReplaceFontSize,
+        PptCommandIds.NewFromTemplate,
+        PptCommandIds.ListPptTemplates,
+        PptCommandIds.InsertLogo,
+        PptCommandIds.InsertLogoBottomRight,
+        PptCommandIds.AddLogoToAllSlides,
+        PptCommandIds.SaveMasterShape,
+        PptCommandIds.ListMasterShapes,
+        PptCommandIds.InsertMasterShape,
+        PptCommandIds.SetShapeMeta,
+        PptCommandIds.GetShapeMeta,
+        PptCommandIds.SearchByMeta,
+        PptCommandIds.RemoveShapeMeta,
+        PptCommandIds.ListSections,
+        PptCommandIds.AddSection,
+        PptCommandIds.RenameSection,
+        PptCommandIds.DeleteSection,
+        PptCommandIds.ApplyAppear,
+        PptCommandIds.ApplyFade,
+        PptCommandIds.ApplyFlyIn,
+        PptCommandIds.ClearAnimations,
+        PptCommandIds.ExportToImages,
+        PptCommandIds.ApplyLayout,
+        PptCommandIds.DuplicateSlide,
+        PptCommandIds.MoveSlide,
+        PptCommandIds.SetBackgroundColor,
+        PptCommandIds.ResetBackground,
+        PptCommandIds.ApplyTransitionFade,
+        PptCommandIds.ApplyTransitionPush,
+        PptCommandIds.SendToFront,
+        PptCommandIds.SendToBack
     };
 
     private static readonly HashSet<string> KnownWordCommands = new(StringComparer.OrdinalIgnoreCase)
@@ -42,7 +86,25 @@ public static class SidecarEndpoints
         WordCommandIds.BuildCim,
         WordCommandIds.BuildManagementPresentation,
         WordCommandIds.EmbedExcelRange,
-        WordCommandIds.RefreshLinks
+        WordCommandIds.RefreshLinks,
+        WordCommandIds.InsertRowAbove,
+        WordCommandIds.InsertRowBelow,
+        WordCommandIds.InsertColumnLeft,
+        WordCommandIds.InsertColumnRight,
+        WordCommandIds.InsertSumFormula,
+        WordCommandIds.DocumentOutline,
+        WordCommandIds.GoToHeading,
+        WordCommandIds.InsertPageBreak,
+        WordCommandIds.InsertSectionBreakNext,
+        WordCommandIds.InsertSectionBreakContinuous,
+        WordCommandIds.InsertToc,
+        WordCommandIds.InsertCoverPage,
+        WordCommandIds.FindReplace,
+        WordCommandIds.DocStats,
+        WordCommandIds.ApplyHeading,
+        WordCommandIds.ApplyNormalStyle,
+        WordCommandIds.SetMargins,
+        WordCommandIds.SetOrientation
     };
 
     private static readonly HashSet<string> KnownExcelCommands = new(StringComparer.OrdinalIgnoreCase)
@@ -63,10 +125,45 @@ public static class SidecarEndpoints
         ExcelCommandIds.PrepareToShare,
         ExcelCommandIds.ApplyFinanceFormat,
         ExcelCommandIds.ToggleSign,
+        ExcelCommandIds.AnalyzeFormula,
+        ExcelCommandIds.SaveTemplate,
+        ExcelCommandIds.ListTemplates,
+        ExcelCommandIds.InsertTemplate,
+        ExcelCommandIds.Correlation,
+        ExcelCommandIds.DescriptiveStats,
+        ExcelCommandIds.HideEmptySheets,
+        ExcelCommandIds.InsertXirrTemplate,
+        ExcelCommandIds.InsertLboTemplate,
+        ExcelCommandIds.AddDropdown,
+        ExcelCommandIds.AddNumericRange,
+        ExcelCommandIds.ClearValidation,
+        ExcelCommandIds.ApplyHeatMap,
+        ExcelCommandIds.ApplyDataBars,
+        ExcelCommandIds.ApplyIconSet,
+        ExcelCommandIds.ApplyTop10,
+        ExcelCommandIds.ClearConditionalFormats,
+        ExcelCommandIds.PasteValues,
+        ExcelCommandIds.RemoveDuplicates,
+        ExcelCommandIds.FreezePanes,
+        ExcelCommandIds.UnfreezePanes,
+        ExcelCommandIds.SetPrintArea,
+        ExcelCommandIds.ClearPrintArea,
+        ExcelCommandIds.AutoSum,
         ExcelCommandIds.InsertDcfTemplate,
+        ExcelCommandIds.InsertBsTemplate,
         ExcelCommandIds.LinkToPowerPoint,
+        ExcelCommandIds.LinkChartToPowerPoint,
         ExcelCommandIds.RefreshLinks,
+        ExcelCommandIds.RepairLinks,
         ExcelCommandIds.NamesManager,
+        ExcelCommandIds.UnhideAllSheets,
+        ExcelCommandIds.ListSheets,
+        ExcelCommandIds.InsertColumnChart,
+        ExcelCommandIds.InsertLineChart,
+        ExcelCommandIds.UnifyChartSizes,
+        ExcelCommandIds.UnifyChartStyles,
+        ExcelCommandIds.AddSeriesToChart,
+        ExcelCommandIds.LinkToWord,
         ExcelCommandIds.OpenTaskPane
     };
 
@@ -221,6 +318,81 @@ public static class SidecarEndpoints
                         PptCommandIds.UnifyWidth => ShapeTools.UnifyWidth(ppt),
                         PptCommandIds.UnifyHeight => ShapeTools.UnifyHeight(ppt),
                         PptCommandIds.UnifySize => ShapeTools.UnifySize(ppt),
+                    PptCommandIds.HarveyBall => ShapeTools.InsertHarveyBall(ppt,
+                        ParseIntArg(request.Arguments, "value", 2)),
+                    PptCommandIds.ProgressBar => ShapeTools.InsertProgressBar(ppt,
+                        ParseIntArg(request.Arguments, "percent", 50)),
+                    PptCommandIds.RatingStars => ShapeTools.InsertRatingStars(ppt,
+                        ParseIntArg(request.Arguments, "stars", 3)),
+                    PptCommandIds.RotateClockwise => ShapeTools.RotateClockwise(ppt),
+                    PptCommandIds.RotateCounterClockwise => ShapeTools.RotateCounterClockwise(ppt),
+                    PptCommandIds.SwapPositions => ShapeTools.SwapPositions(ppt),
+                    PptCommandIds.AddSlideNumbers => ShapeTools.AddSlideNumbers(ppt),
+                    PptCommandIds.RemoveSlideNumbers => ShapeTools.RemoveSlideNumbers(ppt),
+                    PptCommandIds.InsertTombstone => TombstoneInserter.InsertTombstone(ppt,
+                        request.Arguments?.GetValueOrDefault("companyName")),
+                    PptCommandIds.SearchByFont => System.Text.Json.JsonSerializer.Serialize(
+                        ReformatView.SearchByFont(ppt, request.Arguments?.GetValueOrDefault("fontName") ?? "Arial")),
+                    PptCommandIds.ReplaceFont => ReformatView.ReplaceFont(ppt,
+                        request.Arguments?.GetValueOrDefault("oldFont") ?? "Arial",
+                        request.Arguments?.GetValueOrDefault("newFont") ?? "Calibri"),
+                    PptCommandIds.SearchByFontSize => System.Text.Json.JsonSerializer.Serialize(
+                        ReformatView.SearchByFontSize(ppt,
+                            float.TryParse(request.Arguments?.GetValueOrDefault("size"), out var s) ? s : 12f)),
+                    PptCommandIds.ReplaceFontSize => ReformatView.ReplaceFontSize(ppt,
+                        float.TryParse(request.Arguments?.GetValueOrDefault("oldSize"), out var os) ? os : 12f,
+                        float.TryParse(request.Arguments?.GetValueOrDefault("newSize"), out var ns) ? ns : 14f),
+                    PptCommandIds.NewFromTemplate => PresentationTools.NewFromTemplate(ppt,
+                        request.Arguments?.GetValueOrDefault("templatePath")),
+                    PptCommandIds.ListPptTemplates => PresentationTools.ListTemplates(
+                        request.Arguments?.GetValueOrDefault("searchPath")),
+                    PptCommandIds.InsertLogo => LogoLibrary.InsertLogo(ppt,
+                        request.Arguments?.GetValueOrDefault("logoPath") ?? ""),
+                    PptCommandIds.InsertLogoBottomRight => LogoLibrary.InsertLogoBottomRight(ppt,
+                        request.Arguments?.GetValueOrDefault("logoPath") ?? ""),
+                    PptCommandIds.AddLogoToAllSlides => LogoLibrary.AddLogoToAllSlides(ppt,
+                        request.Arguments?.GetValueOrDefault("logoPath") ?? ""),
+                    PptCommandIds.SaveMasterShape => MasterShapes.SaveShape(ppt,
+                        request.Arguments?.GetValueOrDefault("shapeName") ?? "Shape1"),
+                    PptCommandIds.ListMasterShapes => MasterShapes.ListShapes(),
+                    PptCommandIds.InsertMasterShape => MasterShapes.InsertShape(ppt,
+                        request.Arguments?.GetValueOrDefault("shapeName") ?? "Shape1"),
+                    PptCommandIds.SetShapeMeta => MetaShapes.SetMeta(ppt,
+                        request.Arguments?.GetValueOrDefault("key") ?? "",
+                        request.Arguments?.GetValueOrDefault("value") ?? ""),
+                    PptCommandIds.GetShapeMeta => MetaShapes.GetMeta(ppt),
+                    PptCommandIds.SearchByMeta => MetaShapes.SearchByMeta(ppt,
+                        request.Arguments?.GetValueOrDefault("key") ?? "",
+                        request.Arguments?.GetValueOrDefault("value")),
+                    PptCommandIds.RemoveShapeMeta => MetaShapes.RemoveMeta(ppt,
+                        request.Arguments?.GetValueOrDefault("key") ?? ""),
+                    PptCommandIds.ListSections => SectionTools.ListSections(ppt),
+                    PptCommandIds.AddSection => SectionTools.AddSection(ppt,
+                        request.Arguments?.GetValueOrDefault("sectionName") ?? "New Section"),
+                    PptCommandIds.RenameSection => SectionTools.RenameSection(ppt,
+                        int.TryParse(request.Arguments?.GetValueOrDefault("sectionIndex"), out var si) ? si : 1,
+                        request.Arguments?.GetValueOrDefault("newName") ?? "Section"),
+                    PptCommandIds.DeleteSection => SectionTools.DeleteSection(ppt,
+                        int.TryParse(request.Arguments?.GetValueOrDefault("sectionIndex"), out var di) ? di : 1),
+                    PptCommandIds.ApplyAppear => AnimationTools.ApplyAppear(ppt),
+                    PptCommandIds.ApplyFade => AnimationTools.ApplyFade(ppt),
+                    PptCommandIds.ApplyFlyIn => AnimationTools.ApplyFlyIn(ppt),
+                    PptCommandIds.ClearAnimations => AnimationTools.ClearAnimations(ppt),
+                    PptCommandIds.ExportToImages => PresentationTools.ExportToImages(ppt,
+                        request.Arguments?.GetValueOrDefault("outputDir")),
+                    PptCommandIds.ApplyLayout => PresentationTools.ApplyLayout(ppt,
+                        request.Arguments?.GetValueOrDefault("layoutName"),
+                        int.TryParse(request.Arguments?.GetValueOrDefault("layoutIndex"), out var li) ? (int?)li : null),
+                    PptCommandIds.DuplicateSlide => PresentationTools.DuplicateSlide(ppt),
+                    PptCommandIds.MoveSlide => PresentationTools.MoveSlide(ppt,
+                        int.TryParse(request.Arguments?.GetValueOrDefault("toIndex"), out var mi) ? mi : 1),
+                    PptCommandIds.SetBackgroundColor => PresentationTools.SetBackgroundColor(ppt,
+                        request.Arguments?.GetValueOrDefault("colorHex")),
+                    PptCommandIds.ResetBackground => PresentationTools.ResetBackground(ppt),
+                    PptCommandIds.ApplyTransitionFade => PresentationTools.ApplyTransitionFade(ppt),
+                    PptCommandIds.ApplyTransitionPush => PresentationTools.ApplyTransitionPush(ppt),
+                    PptCommandIds.SendToFront => PresentationTools.SendToFront(ppt),
+                    PptCommandIds.SendToBack => PresentationTools.SendToBack(ppt),
                         _ => throw new InvalidOperationException($"不支持的 PowerPoint 命令: {request.CommandId}")
                     };
                 }
@@ -262,6 +434,35 @@ public static class SidecarEndpoints
                             LinkToExcel.EmbedExcelRange(excelService.GetApplication(), word),
                         WordCommandIds.RefreshLinks =>
                             LinkToExcel.RefreshLinks(word),
+                        WordCommandIds.InsertRowAbove => TableTools.InsertRowAbove(word),
+                        WordCommandIds.InsertRowBelow => TableTools.InsertRowBelow(word),
+                        WordCommandIds.InsertColumnLeft => TableTools.InsertColumnLeft(word),
+                        WordCommandIds.InsertColumnRight => TableTools.InsertColumnRight(word),
+                        WordCommandIds.InsertSumFormula => TableTools.InsertSumFormula(word),
+                        WordCommandIds.DocumentOutline => DocumentOutline.GetOutline(word),
+                        WordCommandIds.GoToHeading => DocumentOutline.GoToHeading(word,
+                            int.TryParse(request.Arguments?.GetValueOrDefault("index"), out var hi) ? hi : 0),
+                        WordCommandIds.InsertPageBreak => DocumentTools.InsertPageBreak(word),
+                        WordCommandIds.InsertSectionBreakNext => DocumentTools.InsertSectionBreakNextPage(word),
+                        WordCommandIds.InsertSectionBreakContinuous => DocumentTools.InsertSectionBreakContinuous(word),
+                        WordCommandIds.InsertToc => DocumentTools.InsertTableOfContents(word),
+                        WordCommandIds.InsertCoverPage => DocumentTools.InsertCoverPage(word,
+                            request.Arguments?.GetValueOrDefault("title"),
+                            request.Arguments?.GetValueOrDefault("subtitle")),
+                        WordCommandIds.FindReplace => DocumentTools.FindReplace(word,
+                            request.Arguments?.GetValueOrDefault("findText") ?? "",
+                            request.Arguments?.GetValueOrDefault("replaceText") ?? ""),
+                        WordCommandIds.DocStats => DocumentTools.GetStats(word),
+                        WordCommandIds.ApplyHeading => DocumentTools.ApplyHeading(word,
+                            int.TryParse(request.Arguments?.GetValueOrDefault("level"), out var lv) ? lv : 1),
+                        WordCommandIds.ApplyNormalStyle => DocumentTools.ApplyNormalStyle(word),
+                        WordCommandIds.SetMargins => DocumentTools.SetMargins(word,
+                            float.TryParse(request.Arguments?.GetValueOrDefault("top"), out var tm) ? (float?)tm : null,
+                            float.TryParse(request.Arguments?.GetValueOrDefault("bottom"), out var bm) ? (float?)bm : null,
+                            float.TryParse(request.Arguments?.GetValueOrDefault("left"), out var lm) ? (float?)lm : null,
+                            float.TryParse(request.Arguments?.GetValueOrDefault("right"), out var rm) ? (float?)rm : null),
+                        WordCommandIds.SetOrientation => DocumentTools.SetOrientation(word,
+                            int.TryParse(request.Arguments?.GetValueOrDefault("orientation"), out var o) ? o : 1),
                         _ => throw new InvalidOperationException($"不支持的 Word 命令: {request.CommandId}")
                     };
                 }
@@ -313,16 +514,64 @@ public static class SidecarEndpoints
                     ExcelCommandIds.OptimizeWorkbook => OptimizeWorkbook(excel),
                     ExcelCommandIds.PrepareToShare => PrepareShare(excel, request.Arguments),
                     ExcelCommandIds.NamesManager => RunNamesManager(excel, request.Arguments),
+                    ExcelCommandIds.UnhideAllSheets => SheetManager.UnhideAll(excel),
+                    ExcelCommandIds.ListSheets => SheetManager.ListSheets(excel),
+                    ExcelCommandIds.InsertColumnChart => ChartInserter.InsertColumnChart(excel,
+                        request.Arguments?.GetValueOrDefault("title")),
+                    ExcelCommandIds.InsertLineChart => ChartInserter.InsertLineChart(excel,
+                        request.Arguments?.GetValueOrDefault("title")),
+                    ExcelCommandIds.UnifyChartSizes => ChartInserter.UnifyChartSizes(excel,
+                        float.TryParse(request.Arguments?.GetValueOrDefault("width"), out var cw) ? (float?)cw : null,
+                        float.TryParse(request.Arguments?.GetValueOrDefault("height"), out var ch) ? (float?)ch : null),
+                    ExcelCommandIds.UnifyChartStyles => ChartInserter.UnifyChartStyles(excel,
+                        int.TryParse(request.Arguments?.GetValueOrDefault("chartStyle"), out var cs) ? (int?)cs : null),
+                    ExcelCommandIds.AddSeriesToChart => ChartInserter.AddSeriesToChart(excel,
+                        request.Arguments?.GetValueOrDefault("seriesName")),
+                    ExcelCommandIds.LinkToWord => LinkToWord(excel, factory),
 
                     // === Cross-App Linking ===
                     ExcelCommandIds.LinkToPowerPoint => LinkToPowerPoint(excel, factory),
+                    ExcelCommandIds.LinkChartToPowerPoint => LinkChartToPowerPoint(excel, factory),
                     ExcelCommandIds.RefreshLinks => await RefreshAllLinksAsync(excel, factory, bridgeClient, logger),
+                    ExcelCommandIds.RepairLinks => await RepairAllLinksAsync(excel, factory, bridgeClient, logger),
 
                     // === Finance Tools ===
                     ExcelCommandIds.ApplyFinanceFormat => ApplyFinanceFormat.Execute(excel,
                         request.Arguments?.GetValueOrDefault("type", "accounting") ?? "accounting"),
                     ExcelCommandIds.ToggleSign => ToggleSign.Execute(excel),
+                    ExcelCommandIds.AnalyzeFormula => System.Text.Json.JsonSerializer.Serialize(
+                        FormulaSimplifier.Analyze(excel)),
+                    ExcelCommandIds.SaveTemplate => TemplateManager.SaveSelection(excel,
+                        request.Arguments?.GetValueOrDefault("templateName") ?? "MyTemplate"),
+                    ExcelCommandIds.ListTemplates => TemplateManager.ListTemplates(),
+                    ExcelCommandIds.InsertTemplate => TemplateManager.InsertTemplate(excel,
+                        request.Arguments?.GetValueOrDefault("templateName") ?? "MyTemplate"),
+                    ExcelCommandIds.Correlation => StatisticsTools.Correlation(excel),
+                    ExcelCommandIds.DescriptiveStats => StatisticsTools.DescriptiveStats(excel),
+                    ExcelCommandIds.HideEmptySheets => SheetManager.HideEmptySheets(excel),
+                    ExcelCommandIds.InsertXirrTemplate => FinancialTools.InsertXirrTemplate(excel,
+                        int.TryParse(request.Arguments?.GetValueOrDefault("periods"), out var p) ? p : 6),
+                    ExcelCommandIds.InsertLboTemplate => FinancialTools.InsertLboTemplate(excel),
+                    ExcelCommandIds.AddDropdown => DataValidationTools.AddDropdown(excel,
+                        request.Arguments?.GetValueOrDefault("options") ?? "Yes,No"),
+                    ExcelCommandIds.AddNumericRange => DataValidationTools.AddNumericRange(excel,
+                        double.TryParse(request.Arguments?.GetValueOrDefault("min"), out var min) ? min : 0,
+                        double.TryParse(request.Arguments?.GetValueOrDefault("max"), out var max) ? max : 100),
+                    ExcelCommandIds.ClearValidation => DataValidationTools.ClearValidation(excel),
+                    ExcelCommandIds.ApplyHeatMap => ConditionalFormatTools.ApplyHeatMap(excel),
+                    ExcelCommandIds.ApplyDataBars => ConditionalFormatTools.ApplyDataBars(excel),
+                    ExcelCommandIds.ApplyIconSet => ConditionalFormatTools.ApplyIconSet(excel),
+                    ExcelCommandIds.ApplyTop10 => ConditionalFormatTools.ApplyTop10(excel),
+                    ExcelCommandIds.ClearConditionalFormats => ConditionalFormatTools.ClearConditionalFormats(excel),
+                    ExcelCommandIds.PasteValues => PasteValuesOnly(excel),
+                    ExcelCommandIds.RemoveDuplicates => SheetManager.RemoveDuplicates(excel),
+                    ExcelCommandIds.FreezePanes => SheetManager.FreezePanes(excel),
+                    ExcelCommandIds.UnfreezePanes => SheetManager.UnfreezePanes(excel),
+                    ExcelCommandIds.SetPrintArea => SheetManager.SetPrintArea(excel),
+                    ExcelCommandIds.ClearPrintArea => SheetManager.ClearPrintArea(excel),
+                    ExcelCommandIds.AutoSum => SheetManager.AutoSum(excel),
                     ExcelCommandIds.InsertDcfTemplate => DcfTemplateInserter.Execute(excel),
+                    ExcelCommandIds.InsertBsTemplate => BlackScholesTemplateInserter.Execute(excel),
                     ExcelCommandIds.OpenTaskPane => "任务窗格应由 Web Add-in 直接打开。",
 
                     _ => throw new InvalidOperationException($"不支持的 Excel 命令: {request.CommandId}")
@@ -452,22 +701,72 @@ public static class SidecarEndpoints
 
     private static string TracePrecedents(dynamic excel)
     {
-        var precedents = PrecedentTracer.TraceDirectPrecedents(excel);
+        var precedents = PrecedentTracer.TraceAllPrecedents(excel);
+        dynamic selection = excel.Selection;
+        try
+        {
+            // Excel 原生蓝色追踪箭头
+            selection.ShowPrecedents();
+        }
+        catch { /* ShowPrecedents 在无前驱时抛出异常，正常 */ }
+
+        // 高亮前驱单元格（ColorIndex 8 = 青色）
+        foreach (var cell in precedents)
+        {
+            try
+            {
+                dynamic range = excel.ActiveSheet.Range[cell.Address];
+                range.Interior.ColorIndex = 8;
+            }
+            catch { /* 非关键 */ }
+        }
+
+        // 高亮选中单元格（ColorIndex 6 = 黄色）
+        try { selection.Interior.ColorIndex = 6; } catch { }
+
         return System.Text.Json.JsonSerializer.Serialize(precedents);
     }
 
     private static string TraceDependents(dynamic excel)
     {
-        var dependents = DependentTracer.TraceDirectDependents(excel);
+        var dependents = DependentTracer.TraceAllDependents(excel);
+        dynamic selection = excel.Selection;
+        try
+        {
+            // Excel 原生蓝色追踪箭头
+            selection.ShowDependents();
+        }
+        catch { /* ShowDependents 在无依赖时抛出异常，正常 */ }
+
+        // 高亮依赖单元格（ColorIndex 4 = 绿色）
+        foreach (var cell in dependents)
+        {
+            try
+            {
+                dynamic range = excel.ActiveSheet.Range[cell.Address];
+                range.Interior.ColorIndex = 4;
+            }
+            catch { /* 非关键 */ }
+        }
+
+        // 高亮选中单元格（ColorIndex 6 = 黄色）
+        try { selection.Interior.ColorIndex = 6; } catch { }
+
         return System.Text.Json.JsonSerializer.Serialize(dependents);
     }
 
     private static string ClearTracing(dynamic excel)
     {
-        // 清除所有追踪箭头
+        // 清除所有追踪箭头和背景色
         dynamic activeSheet = excel.ActiveSheet;
-        try { activeSheet.ClearArrows(); } catch { }
-        return "追踪箭头已清除。";
+        try
+        {
+            activeSheet.ClearArrows();
+            dynamic usedRange = activeSheet.UsedRange;
+            try { usedRange.Interior.ColorIndex = -4142; } catch { /* xlColorIndexNone */ }
+        }
+        catch { }
+        return "{\"message\":\"追踪箭头和颜色已清除。\"}";
     }
 
     private static string OptimizeWorkbook(dynamic excel)
@@ -479,7 +778,9 @@ public static class SidecarEndpoints
     private static string PrepareShare(dynamic excel, Dictionary<string, string>? args)
     {
         var outputPath = args?.GetValueOrDefault("outputPath");
-        var result = PrepareToShare.Execute(excel, outputPath);
+        var maskData = args != null && args.TryGetValue("maskData", out var maskRaw)
+            && (maskRaw.Equals("true", StringComparison.OrdinalIgnoreCase) || maskRaw == "1");
+        var result = PrepareToShare.Execute(excel, outputPath, maskData);
         return System.Text.Json.JsonSerializer.Serialize(result);
     }
 
@@ -536,6 +837,32 @@ public static class SidecarEndpoints
 
         var result = ExcelToPowerPointLinker.LinkRange(excel, ppt);
         return System.Text.Json.JsonSerializer.Serialize(new { success = true, message = result });
+    }
+
+    private static string LinkChartToPowerPoint(dynamic excel, OfficeApplicationFactory factory)
+    {
+        var ppt = factory.GetPowerPoint();
+        if (ppt == null) return "PowerPoint is not running. Please start PowerPoint first.";
+
+        var result = ExcelToPowerPointLinker.LinkChart(excel, ppt);
+        return System.Text.Json.JsonSerializer.Serialize(new { success = true, message = result });
+    }
+
+    private static string LinkToWord(dynamic excel, OfficeApplicationFactory factory)
+    {
+        var word = factory.GetWord();
+        if (word == null) return "Word is not running. Please start Word first.";
+
+        dynamic selection = excel.Selection;
+        selection.Copy();
+        dynamic document = word.ActiveDocument ?? word.Documents.Add();
+        dynamic range = word.Selection.Range;
+        range.Paste();
+        return System.Text.Json.JsonSerializer.Serialize(new
+        {
+            success = true,
+            message = $"Range {selection.Address} pasted into Word."
+        });
     }
 
     private static string RefreshAllLinks(dynamic excel)
@@ -627,6 +954,89 @@ public static class SidecarEndpoints
                 .Concat(skippedTargets)
                 .ToList()
         });
+    }
+
+    private static async Task<string> RepairAllLinksAsync(
+        dynamic excel,
+        OfficeApplicationFactory factory,
+        BackendBridgeClient bridgeClient,
+        ILogger logger)
+    {
+        IReadOnlyList<LinkMetadata> links;
+        try
+        {
+            links = await bridgeClient.GetLinkMetadataAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "读取后端链接元数据失败，将使用本机修复模式。");
+            var er = LinkRepairer.RepairExcelLinks(excel);
+            return System.Text.Json.JsonSerializer.Serialize(new
+            {
+                metadataDriven = false,
+                note = "后端链接元数据不可达，仅执行 Excel 本机链接修复。",
+                excel = new { er.Diagnosed, er.Repaired, er.Failed, er.Actions }
+            });
+        }
+
+        if (links.Count == 0)
+        {
+            var fb = LinkRepairer.RepairExcelLinks(excel);
+            return System.Text.Json.JsonSerializer.Serialize(new
+            {
+                metadataDriven = false,
+                note = "没有链接元数据记录，执行本机 Excel 链接修复。",
+                excel = new { fb.Diagnosed, fb.Repaired, fb.Failed }
+            });
+        }
+
+        var plan = LinkRefreshPlanner.Create(links);
+        var excelRepair = LinkRepairer.RepairExcelLinks(excel);
+
+        object? pptRepair = null;
+        if (plan.RefreshPowerPoint)
+        {
+            try
+            {
+                var pptApp = factory.GetPowerPoint();
+                if (pptApp != null)
+                {
+                    var pr = LinkRepairer.RepairPowerPointLinks(pptApp, plan.PowerPointTargetObjects);
+                    pptRepair = new { pr.Diagnosed, pr.Repaired, pr.Failed, pr.Actions };
+                }
+            }
+            catch (Exception ex)
+            {
+                pptRepair = new { error = ex.Message };
+            }
+        }
+
+        return System.Text.Json.JsonSerializer.Serialize(new
+        {
+            metadataDriven = true,
+            metadata = new { plan.MetadataCount, plan.PowerPointTargets, plan.WordTargets },
+            excel = new { excelRepair.Diagnosed, excelRepair.Repaired, excelRepair.Failed, excelRepair.Actions },
+            powerpoint = pptRepair,
+            suggestions = excelRepair.Suggestions
+        });
+    }
+
+    private static int ParseIntArg(Dictionary<string, string>? args, string key, int defaultValue)
+    {
+        if (args != null && args.TryGetValue(key, out var raw) && int.TryParse(raw, out var parsed))
+            return parsed;
+        return defaultValue;
+    }
+
+    private static string PasteValuesOnly(dynamic excel)
+    {
+        try
+        {
+            dynamic selection = excel.Selection;
+            selection.PasteSpecial(-4163); // xlPasteValues
+            return $"Pasted values only to {selection.Address}.";
+        }
+        catch { return "Paste values failed. Make sure you have copied data first."; }
     }
 
     private static string GetTraceId(HttpContext context)

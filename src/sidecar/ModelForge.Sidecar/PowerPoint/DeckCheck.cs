@@ -18,6 +18,7 @@ public static class DeckCheck
         public int DenseTextSlides { get; set; }
         public int LogoIssues { get; set; }
         public int LogoPositionIssues { get; set; }
+        public int ColorIssues { get; set; }
         public string? TemplateName { get; set; }
         public string ReportTitle { get; set; } = "ModelForge Deck Check Report";
         public string BrandPrimaryColor { get; set; } = "#1f3a5f";
@@ -25,7 +26,7 @@ public static class DeckCheck
         public string? ReportPath { get; set; }
         public List<string> Issues { get; } = new();
         public int TotalIssues =>
-            FontIssues + TermIssues + MissingSlideNumbers + DenseTextSlides + LogoIssues + LogoPositionIssues;
+            FontIssues + TermIssues + MissingSlideNumbers + DenseTextSlides + LogoIssues + LogoPositionIssues + ColorIssues;
         public string OverallStatus => TotalIssues == 0 ? "Pass" : TotalIssues <= 5 ? "Review" : "ActionRequired";
     }
 
@@ -40,6 +41,7 @@ public static class DeckCheck
     {
         string[]? forbiddenTerms = null;
         string[]? allowedFonts = null;
+        string[]? brandColors = null;
         var checkLogos = false;
         var exportPdf = false;
         string? reportPath = null;
@@ -58,6 +60,8 @@ public static class DeckCheck
                 forbiddenTerms = SplitPipeDelimited(forbiddenTermsValue);
             if (args.TryGetValue("allowedFonts", out var allowedFontsValue))
                 allowedFonts = SplitPipeDelimited(allowedFontsValue);
+            if (args.TryGetValue("brandColors", out var brandColorsValue))
+                brandColors = SplitPipeDelimited(brandColorsValue);
             if (args.TryGetValue("checkLogos", out var checkLogosValue))
                 checkLogos = IsTruthy(checkLogosValue);
             if (args.TryGetValue("exportPdf", out var exportPdfValue))
@@ -87,6 +91,7 @@ public static class DeckCheck
             pptApp,
             allowedFonts,
             forbiddenTerms,
+            brandColors,
             checkLogos,
             exportPdf,
             reportPath,
@@ -105,6 +110,7 @@ public static class DeckCheck
     public static DeckCheckReport Run(dynamic pptApp,
         string[]? allowedFonts = null,
         string[]? forbiddenTerms = null,
+        string[]? brandColors = null,
         bool checkLogos = false,
         bool exportPdf = false,
         string? reportPath = null,
@@ -112,6 +118,7 @@ public static class DeckCheck
     {
         allowedFonts ??= new[] { "Arial", "Calibri", "Calibri Light", "Microsoft YaHei" };
         forbiddenTerms ??= new[] { "机密", "草案", "DRAFT" };
+        var checkColors = brandColors is { Length: > 0 };
         logoPolicy ??= LogoPolicy.Default;
 
         var report = new DeckCheckReport
@@ -172,6 +179,23 @@ public static class DeckCheck
                         }
                         catch { }
 
+                        // 颜色合规检查
+                        if (checkColors)
+                        {
+                            try
+                            {
+                                int fontColorRgb = textRange.Font.Color.RGB;
+                                string fontColorHex = $"#{fontColorRgb & 0xFF:X2}{(fontColorRgb >> 8) & 0xFF:X2}{(fontColorRgb >> 16) & 0xFF:X2}";
+                                if (!brandColors!.Any(c => string.Equals(c.Trim().TrimStart('#'), fontColorHex.TrimStart('#'), StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    report.ColorIssues++;
+                                    report.Issues.Add(
+                                        $"Slide {slideNum}: 字体颜色 {fontColorHex} 不在品牌调色板内 (形状: {shape.Name})");
+                                }
+                            }
+                            catch { /* 颜色读取失败，跳过 */ }
+                        }
+
                         // 术语检查
                         foreach (var term in forbiddenTerms)
                         {
@@ -180,6 +204,9 @@ public static class DeckCheck
                                 report.TermIssues++;
                                 report.Issues.Add(
                                     $"Slide {slideNum}: 包含禁止术语 '{term}' (形状: {shape.Name})");
+
+                                // 高亮术语：在幻灯片上标记
+                                HighlightTerm(textRange, term);
                             }
                         }
                     }
@@ -444,6 +471,24 @@ public static class DeckCheck
         public string BrandPrimaryColor { get; init; } = "#1F3A5F";
         public string BrandAccentColor { get; init; } = "#3B82F6";
         public static LogoPolicy Default { get; } = new("Default enterprise template", 160, 90, 220, 120);
+    }
+
+    private static void HighlightTerm(dynamic textRange, string term)
+    {
+        try
+        {
+            string text = textRange.Text ?? "";
+            int idx = text.IndexOf(term, StringComparison.OrdinalIgnoreCase);
+            while (idx >= 0)
+            {
+                dynamic found = textRange.Characters(idx + 1, term.Length);
+                found.Font.Color.RGB = 0x0000FF; // Red
+                found.Font.Underline = true;
+                found.Font.Bold = -1;
+                idx = text.IndexOf(term, idx + 1, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        catch { /* non-critical */ }
     }
 
     private static bool LooksLikeLogo(dynamic shape)

@@ -1,6 +1,6 @@
 ﻿# ModelForge API 契约
 
-本文档定义 `0.1.3` 后端桥接服务与 Sidecar 的 API 契约，用于连接 Sidecar、Web Add-in、管理员后台和后续自动化/AI 能力。当前目标是统一数据模型、TraceId、命令分发、配置、审计、诊断、术语字典和链接元数据的最小可用接口。
+本文档定义 `0.2.0` 后端桥接服务与 Sidecar 的 API 契约，用于连接 Sidecar、Web Add-in、管理员后台和后续自动化/AI 能力。当前目标是统一数据模型、TraceId、命令分发、配置、审计、诊断、术语字典和链接元数据的最小可用接口。
 
 ## 1. 基本约定
 
@@ -121,7 +121,7 @@ X-Trace-Id: client-generated-id
   "data": {
     "product": "ModelForge",
     "component": "Backend API",
-    "version": "0.1.3",
+    "version": "0.2.0",
     "apiVersion": "v1",
     "buildTimestampUtc": "2026-06-01T10:00:00+00:00"
   },
@@ -441,7 +441,7 @@ Admin 操作的 `actorId` 取 JWT `sub`（当前为本地用户 ID），`host=We
     "version": {
       "product": "ModelForge",
       "component": "Backend API",
-      "version": "0.1.3",
+      "version": "0.2.0",
       "apiVersion": "v1"
     },
     "databaseProvider": "inmemory",

@@ -4,8 +4,22 @@ using ModelForge.Sidecar.Configuration;
 using ModelForge.Sidecar.Interop;
 using ModelForge.Sidecar.Keyboard;
 using ModelForge.Sidecar.Services;
+using Serilog;
+
+// ── Serilog 日志配置 ──
+var sidecarLogPath = System.IO.Path.Combine(
+    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+    "ModelForge", "logs", "sidecar-.log");
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(sidecarLogPath, rollingInterval: RollingInterval.Day, retainedFileCountLimit: 7,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .CreateLogger();
 
 var builder = WebApplication.CreateSlimBuilder(args);
+builder.Logging.AddSerilog();
+
 builder.Host.UseWindowsService(options =>
 {
     options.ServiceName = "ModelForge.Sidecar";

@@ -11,6 +11,7 @@ public sealed class ModelForgeDbContext : DbContext
     public DbSet<AuditEventEntry> AuditEvents => Set<AuditEventEntry>();
     public DbSet<LinkMetadataEntry> LinkMetadata => Set<LinkMetadataEntry>();
     public DbSet<DictionaryEntry> DictionaryTerms => Set<DictionaryEntry>();
+    public DbSet<UserEntry> Users => Set<UserEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,6 +46,17 @@ public sealed class ModelForgeDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasMaxLength(64);
             entity.Property(e => e.Term).HasMaxLength(256);
+        });
+
+        modelBuilder.Entity<UserEntry>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasMaxLength(64);
+            entity.Property(e => e.Username).HasMaxLength(128);
+            entity.HasIndex(e => e.Username).IsUnique();
+            entity.Property(e => e.Role).HasMaxLength(32);
+            entity.Property(e => e.PasswordHash).HasMaxLength(256);
+            entity.Property(e => e.PasswordSalt).HasMaxLength(64);
         });
     }
 }
@@ -94,4 +106,15 @@ public sealed class DictionaryEntry
     public string Category { get; set; } = "General";
     public string Severity { get; set; } = "Warning";
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public sealed class UserEntry
+{
+    public string Id { get; set; } = string.Empty;
+    public string Username { get; set; } = string.Empty;
+    public string Role { get; set; } = "Analyst";
+    public bool IsActive { get; set; } = true;
+    public string PasswordHash { get; set; } = string.Empty;
+    public string PasswordSalt { get; set; } = string.Empty;
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 }

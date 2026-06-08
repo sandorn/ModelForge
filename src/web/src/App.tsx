@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, lazy, Suspense } from 'react';
 import {
   Badge, Button, Card, CardHeader, Spinner, Text, Title3,
 } from '@fluentui/react-components';
@@ -6,13 +6,22 @@ import { useBridgeStore, type PanelId } from './services/bridgeStore';
 import { useAuthStore } from './services/authStore';
 import { LoginPage } from './components/LoginPage';
 import { Omnibar } from './components/Omnibar';
-import { AiwaChat } from './components/AiwaChat';
-import { AdminConsole } from './components/AdminConsole';
-import { LinkManager } from './components/LinkManager';
-import { DeckCheckViewer } from './components/DeckCheckViewer';
 import { sidecarClient } from './services/sidecarClient';
+import { apiClient } from './services/apiClient';
 import { recordUiAction } from './services/uiAudit';
-import type { ShortcutItem } from './types/contracts';
+import type { ShortcutItem, DashboardSummaryResponse } from './types/contracts';
+
+// Lazy-loaded panels for code splitting
+const AiwaChat = lazy(() => import('./components/AiwaChat').then(m => ({ default: m.AiwaChat })));
+const AdminConsole = lazy(() => import('./components/AdminConsole').then(m => ({ default: m.AdminConsole })));
+const LinkManager = lazy(() => import('./components/LinkManager').then(m => ({ default: m.LinkManager })));
+const DeckCheckViewer = lazy(() => import('./components/DeckCheckViewer').then(m => ({ default: m.DeckCheckViewer })));
+const TemplateBrowser = lazy(() => import('./components/TemplateBrowser').then(m => ({ default: m.TemplateBrowser })));
+const ShortcutsPanel = lazy(() => import('./components/ShortcutsPanel').then(m => ({ default: m.ShortcutsPanel })));
+const AiConfigPanel = lazy(() => import('./components/AiConfigPanel').then(m => ({ default: m.AiConfigPanel })));
+const SettingsPanel = lazy(() => import('./components/SettingsPanel').then(m => ({ default: m.SettingsPanel })));
+
+const PanelFallback = () => <Spinner label="Loading..." />;
 
 type CommandSummary = {
   id: string;
@@ -99,6 +108,10 @@ export function App() {
     { id: 'audit', label: '审计', icon: AuditIcon },
     { id: 'aiwa', label: 'AIWA', icon: AiIcon },
     { id: 'admin', label: '管理', icon: AdminIcon },
+    { id: 'templates', label: '模板', icon: <Icon d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zM6 20V4h7v5h5v11H6zM8 12h8v2H8v-2zM8 16h8v2H8v-2z" /> },
+    { id: 'shortcuts', label: '快捷键', icon: <Icon d="M15 7.5V4h-2v3.5H9.5V9H13v3.5h2V9h3.5V7.5H15zM4 4h5v2H6v3H4V4zm0 16h5v-2H6v-3H4v5zm14 0h-5v-2h3v-3h2v5z" /> },
+    { id: 'aiConfig', label: 'AI', icon: AiIcon },
+    { id: 'settings', label: '设置', icon: <Icon d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.49.49 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94L14.4 2.81a.484.484 0 00-.41-.3h-3.98a.5.5 0 00-.4.3l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 00-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.26.3.4.3h3.98c.15 0 .36-.06.41-.3l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" /> },
   ];
 
   return (
@@ -159,17 +172,25 @@ export function App() {
           />
         )}
 
-        {activePanel === 'ppt' && <DeckCheckViewer />}
+        {activePanel === 'ppt' && <Suspense fallback={<PanelFallback />}><DeckCheckViewer /></Suspense>}
 
         {activePanel === 'word' && <WordPanel />}
 
-        {activePanel === 'links' && <LinkManager />}
+        {activePanel === 'links' && <Suspense fallback={<PanelFallback />}><LinkManager /></Suspense>}
 
         {activePanel === 'audit' && <AuditPanel commands={commands} />}
 
-        {activePanel === 'aiwa' && <AiwaChat />}
+        {activePanel === 'aiwa' && <Suspense fallback={<PanelFallback />}><AiwaChat /></Suspense>}
 
-        {activePanel === 'admin' && <AdminConsole />}
+        {activePanel === 'admin' && <Suspense fallback={<PanelFallback />}><AdminConsole /></Suspense>}
+
+        {activePanel === 'templates' && <Suspense fallback={<PanelFallback />}><TemplateBrowser /></Suspense>}
+
+        {activePanel === 'shortcuts' && <Suspense fallback={<PanelFallback />}><ShortcutsPanel /></Suspense>}
+
+        {activePanel === 'aiConfig' && <Suspense fallback={<PanelFallback />}><AiConfigPanel /></Suspense>}
+
+        {activePanel === 'settings' && <Suspense fallback={<PanelFallback />}><SettingsPanel /></Suspense>}
       </section>
 
       {showOmnibar && <Omnibar onClose={() => setShowOmnibar(false)} />}
@@ -190,6 +211,29 @@ function Dashboard({ health, version, sidecarConnected, commands, backendBaseUrl
   commands: { id: string }[];
   backendBaseUrl: string;
 }) {
+  const { executeCommand } = useBridgeStore();
+  const [dashSummary, setDashSummary] = useState<DashboardSummaryResponse | null>(null);
+  const [dashError, setDashError] = useState<string | null>(null);
+  const [dashLoading, setDashLoading] = useState(false);
+
+  const loadDashboard = async () => {
+    setDashLoading(true);
+    setDashError(null);
+    try {
+      setDashSummary(await apiClient.getDashboardSummary());
+    } catch (error) {
+      setDashError(error instanceof Error ? error.message : 'Dashboard 数据加载失败。');
+    } finally {
+      setDashLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadDashboard();
+  }, []);
+
+  const maxCmdCount = Math.max(1, ...(dashSummary?.topCommands.map((c) => c.count) ?? [0]));
+
   return (
     <div className="panel">
       <Title3>总览</Title3>
@@ -210,6 +254,118 @@ function Dashboard({ health, version, sidecarConnected, commands, backendBaseUrl
           <Text size={900}>{commands.length}</Text>
           <Text size={100}>条已注册命令</Text>
         </Card>
+        <Card>
+          <CardHeader header={<Text weight="semibold">快捷操作</Text>} />
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+            <Button size="small" onClick={() => { recordUiAction({ action: 'quick.paste-values' }); void executeCommand('excel.paste-values'); }}>粘贴数值</Button>
+            <Button size="small" onClick={() => { recordUiAction({ action: 'quick.model-check' }); void executeCommand('excel.model-check'); }}>Model Check</Button>
+            <Button size="small" onClick={() => { recordUiAction({ action: 'quick.freeze' }); void executeCommand('excel.freeze-panes'); }}>冻结窗格</Button>
+            <Button size="small" onClick={() => { recordUiAction({ action: 'quick.heatmap' }); void executeCommand('excel.apply-heat-map'); }}>热力图</Button>
+          </div>
+        </Card>
+      </div>
+
+      <div style={{ marginTop: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+          <Title3>使用统计</Title3>
+          <Button size="small" onClick={() => void loadDashboard()} disabled={dashLoading}>
+            {dashLoading ? '加载中...' : '刷新'}
+          </Button>
+        </div>
+        {dashError && <Text className="error-text">{dashError}</Text>}
+        {dashLoading && !dashSummary && <Spinner label="正在加载统计..." />}
+        {dashSummary && (
+          <div className="card-grid">
+            <Card>
+              <CardHeader header={<Text weight="semibold">操作概览</Text>} />
+              <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap' }}>
+                <div>
+                  <Text size={900}>{dashSummary.totalEvents}</Text>
+                  <Text size={100}> 总操作数</Text>
+                </div>
+                <div>
+                  <Text size={900}>{dashSummary.activeUserCount}</Text>
+                  <Text size={100}> 活跃用户</Text>
+                </div>
+                <div>
+                  <Text size={100}>统计窗口: {dashSummary.windowHours}h</Text>
+                </div>
+              </div>
+            </Card>
+            <Card>
+              <CardHeader header={<Text weight="semibold">高频功能 Top 10</Text>} />
+              {dashSummary.topCommands.length === 0 ? (
+                <Text size={200}>暂无数据</Text>
+              ) : (
+                <div className="bar-chart">
+                  {dashSummary.topCommands.map((cmd) => (
+                    <div key={cmd.commandId} className="bar-row">
+                      <Text size={100} className="bar-label">{cmd.commandId}</Text>
+                      <div className="bar-track">
+                        <div className="bar-fill" style={{ width: `${(cmd.count / maxCmdCount) * 100}%` }} />
+                      </div>
+                      <Text size={100} className="bar-count">{cmd.count}</Text>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+            <Card>
+              <CardHeader header={<Text weight="semibold">按宿主分布</Text>} />
+              {dashSummary.byHost.length === 0 ? (
+                <Text size={200}>暂无数据</Text>
+              ) : (
+                <div className="bar-chart">
+                  {dashSummary.byHost.map((host) => (
+                    <div key={host.host} className="bar-row">
+                      <Text size={100} className="bar-label">{host.host}</Text>
+                      <div className="bar-track">
+                        <div className="bar-fill" style={{ width: `${(host.count / Math.max(1, dashSummary.totalEvents)) * 100}%` }} />
+                      </div>
+                      <Text size={100} className="bar-count">{host.count}</Text>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+            {dashSummary.timeline.length > 0 && (
+              <Card>
+                <CardHeader header={<Text weight="semibold">操作趋势</Text>} />
+                <div className="bar-chart">
+                  {dashSummary.timeline.map((bucket) => (
+                    <div key={bucket.label} className="bar-row">
+                      <Text size={100} className="bar-label" style={{ width: '100px' }}>{bucket.label}</Text>
+                      <div className="bar-track">
+                        <div className="bar-fill" style={{ width: `${(bucket.count / Math.max(1, ...dashSummary.timeline.map(b => b.count))) * 100}%` }} />
+                      </div>
+                      <Text size={100} className="bar-count">{bucket.count}</Text>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+            {dashSummary.topCommands.length > 0 && (
+              <Card>
+                <CardHeader header={<Text weight="semibold">最近活跃功能</Text>} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  {dashSummary.topCommands.slice(0, 5).map((cmd, i) => (
+                    <div key={cmd.commandId} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{
+                        width: '20px', height: '20px', borderRadius: '50%',
+                        background: i === 0 ? '#0078d4' : i === 1 ? '#00bcf2' : '#e0e0e0',
+                        color: i < 2 ? '#fff' : '#666',
+                        fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0
+                      }}>{i + 1}</span>
+                      <Text size={200} style={{ flex: 1 }}>{cmd.commandId}</Text>
+                      <Text size={100}>{cmd.count} 次</Text>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -230,12 +386,35 @@ function CommandPanel({ commands, onExecute }: {
   commands: CommandSummary[];
   onExecute: (commandId: string) => void;
 }) {
+  const { currentHost } = useBridgeStore();
+  const [hostFilter, setHostFilter] = useState<string>(currentHost || 'all');
   const commandMap = new Map(commands.map((command) => [command.id, command]));
+
+  const filteredGroups: Record<string, string[]> = useMemo(() => {
+    if (hostFilter === 'all') return COMMAND_GROUPS;
+    const prefix = hostFilter === 'excel' ? 'excel.' : hostFilter === 'powerpoint' ? 'ppt.' : 'word.';
+    const result: Record<string, string[]> = {};
+    for (const [group, ids] of Object.entries(COMMAND_GROUPS)) {
+      const filtered = ids.filter((id: string) => id.startsWith(prefix));
+      if (filtered.length > 0) result[group] = filtered;
+    }
+    return result;
+  }, [hostFilter]);
 
   return (
     <div className="panel">
-      <Title3>命令</Title3>
-      {Object.entries(COMMAND_GROUPS).map(([group, commandIds]) => (
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Title3>命令</Title3>
+        <div style={{ display: 'flex', gap: '4px' }}>
+          {['all', 'excel', 'powerpoint', 'word'].map(h => (
+            <Button key={h} size="small" appearance={hostFilter === h ? 'primary' : 'outline'}
+              onClick={() => setHostFilter(h)}>
+              {h === 'all' ? '全部' : h === 'excel' ? 'Excel' : h === 'powerpoint' ? 'PPT' : 'Word'}
+            </Button>
+          ))}
+        </div>
+      </div>
+      {Object.entries(filteredGroups).map(([group, commandIds]) => (
         <div key={group} className="command-group">
           <Text weight="semibold">{group}</Text>
           <div className="cmd-grid">

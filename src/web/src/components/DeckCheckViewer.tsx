@@ -8,7 +8,7 @@ import { recordUiAction } from '../services/uiAudit';
 
 interface DeckIssue {
   slide: number;
-  type: 'font' | 'term' | 'number' | 'density' | 'logo';
+  type: 'font' | 'term' | 'number' | 'density' | 'logo' | 'color';
   message: string;
 }
 
@@ -20,6 +20,7 @@ interface DeckReport {
   denseTextSlides: number;
   logoIssues: number;
   logoPositionIssues: number;
+  colorIssues: number;
   templateName?: string;
   reportTitle?: string;
   brandPrimaryColor?: string;
@@ -47,6 +48,7 @@ function parseDeckCheckResult(raw: string): DeckReport | null {
           else if (msg.includes("缺失幻灯") || msg.includes("slide number") || msg.includes("编号")) type = 'number';
           else if (msg.includes("文本密度") || msg.includes("density") || msg.includes("字符")) type = 'density';
           else if (msg.includes("logo") || msg.includes("Logo")) type = 'logo';
+          else if (msg.includes("颜色") || msg.includes("Color") || msg.includes("调色板")) type = 'color';
           issues.push({ slide: slideNum, type, message: msg });
         }
       }
@@ -60,6 +62,7 @@ function parseDeckCheckResult(raw: string): DeckReport | null {
       denseTextSlides: data.DenseTextSlides ?? 0,
       logoIssues: data.LogoIssues ?? 0,
       logoPositionIssues: data.LogoPositionIssues ?? 0,
+      colorIssues: data.ColorIssues ?? 0,
       templateName: data.TemplateName,
       reportTitle: data.ReportTitle,
       brandPrimaryColor: data.BrandPrimaryColor,
@@ -217,6 +220,12 @@ export function DeckCheckViewer() {
             <Card style={{ flex: 1, minWidth: 100 }}>
               <Text size={300} weight="bold" style={{ color: report.logoPositionIssues > 0 ? '#ed6c02' : '#2e7d32' }}>
                 {report.logoPositionIssues}
+              </Text>
+              <Text size={100}>Logo 位置</Text>
+            </Card>
+            <Card className="stat-card">
+              <Text size={300} weight="bold" style={{ color: (report.colorIssues ?? 0) > 0 ? '#ed6c02' : '#2e7d32' }}>
+                {report.colorIssues ?? 0}
               </Text>
               <Text size={100}>Logo 位置</Text>
             </Card>

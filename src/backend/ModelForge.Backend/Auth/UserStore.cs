@@ -82,6 +82,44 @@ public sealed class InMemoryUserStore
         return true;
     }
 
+    public bool DeleteUser(string userId)
+    {
+        if (!_users.TryGetValue(userId, out var user)) return false;
+        _users.TryRemove(userId, out _);
+        _passwords.TryRemove(user.Username, out _);
+        return true;
+    }
+
+    public UserIdentity? UpdateUser(string userId, string? newPassword, string? newRole)
+    {
+        if (!_users.TryGetValue(userId, out var user)) return null;
+
+        if (!string.IsNullOrWhiteSpace(newRole))
+        {
+            if (!RoleDefinitions.AllRoles.Contains(newRole))
+                throw new ArgumentException($"role must be one of: {string.Join(", ", RoleDefinitions.AllRoles)}.");
+            // 需要通过反射或重建来修改 role（init-only property）
+            var updated = new UserIdentity
+            {
+                Id = user.Id,
+                Username = user.Username,
+                Role = newRole,
+                IsActive = user.IsActive,
+                CreatedAt = user.CreatedAt
+            };
+            _users[userId] = updated;
+            user = updated;
+        }
+
+        if (!string.IsNullOrWhiteSpace(newPassword))
+        {
+            var salt = Guid.NewGuid().ToString("N")[..16];
+            _passwords[user.Username] = (HashPassword(newPassword, salt), salt);
+        }
+
+        return user;
+    }
+
     private void SeedUser(string username, string password, string role)
     {
         username = NormalizeUsername(username);

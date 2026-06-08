@@ -6,6 +6,7 @@ namespace ModelForge.Sidecar.ModelCheck;
 public sealed class ModelIssue
 {
     public string Address { get; init; } = string.Empty;
+    public string WorksheetName { get; set; } = string.Empty;
     public string Category { get; init; } = string.Empty;
     public string Detail { get; init; } = string.Empty;
     public string? Formula { get; init; }
@@ -21,6 +22,7 @@ public sealed class ModelCheckReport
     public int ExternalLinkCount { get; set; }
     public int CircularRefCount { get; set; }
     public int HardcodedCount { get; set; }
+    public int WorksheetCount { get; set; }
     public int TotalIssues => Issues.Count;
 }
 
@@ -108,20 +110,23 @@ public static class CircularReferenceDetector
 
         try
         {
-            // Excel 在工作簿级别追踪循环引用
             dynamic circularRef = workbook.CircularReference;
             if (circularRef != null)
             {
-                // 遍历所有含循环引用的工作表区域
                 foreach (dynamic area in circularRef)
                 {
                     string addr = area.Address;
+                    string? formula = null;
+                    try { formula = area.Formula; } catch { }
+
+                    // 根据公式模式生成修复建议
+                    var suggestion = BuildSuggestion(addr, formula);
                     issues.Add(new ModelIssue
                     {
                         Address = addr,
                         Category = "循环引用",
-                        Detail = "该单元格参与循环引用链",
-                        Formula = null
+                        Detail = suggestion,
+                        Formula = formula
                     });
                 }
             }
@@ -132,6 +137,19 @@ public static class CircularReferenceDetector
         }
 
         return issues;
+    }
+
+    private static string BuildSuggestion(string addr, string? formula)
+    {
+        if (formula != null && formula.Contains(addr, StringComparison.OrdinalIgnoreCase))
+            return $"单元格 {addr} 的公式直接引用了自身。建议：检查公式范围是否意外包含自身，或将迭代逻辑移到辅助列。";
+
+        if (formula != null && (formula.Contains("OFFSET", StringComparison.OrdinalIgnoreCase) ||
+                                 formula.Contains("INDIRECT", StringComparison.OrdinalIgnoreCase)))
+            return $"单元格 {addr} 使用了 OFFSET/INDIRECT 易导致循环引用。建议：改用 INDEX/MATCH 或直接单元格引用。";
+
+        return $"单元格 {addr} 参与了循环引用链 (A→B→...→A)。建议：1) 检查公式链的逻辑流向，" +
+               "2) 考虑拆分迭代计算为多个步骤，3) 如确需迭代，请在「文件→选项→公式」中启用迭代计算。";
     }
 }
 
@@ -181,33 +199,51 @@ public static class ModelCheckRunner
     {
         var report = new ModelCheckReport();
         dynamic workbook = excelApp.ActiveWorkbook;
-        dynamic worksheet = excelApp.ActiveSheet;
 
-        // 确定实际使用范围
-        dynamic usedRange;
-        try { usedRange = worksheet.UsedRange; }
-        catch { return report; }
+        // 遍历所有工作表
+        int sheetCount = 0;
+        foreach (dynamic worksheet in workbook.Worksheets)
+        {
+            sheetCount++;
+            string sheetName = worksheet.Name;
 
-        // 1. 错误值扫描
-        var errorIssues = ErrorValueScanner.Scan(worksheet, usedRange);
-        report.ErrorValueCount = errorIssues.Count;
-        report.Issues.AddRange(errorIssues);
+            // 跳过隐藏工作表（性能优化）
+            try
+            {
+                if (worksheet.Visible != -1) continue; // xlSheetVisible = -1
+            }
+            catch { /* 非关键，继续扫描 */ }
 
-        // 2. 外部链接扫描
-        var linkIssues = ExternalLinkScanner.Scan(worksheet, usedRange);
-        report.ExternalLinkCount = linkIssues.Count;
-        report.Issues.AddRange(linkIssues);
+            dynamic usedRange;
+            try { usedRange = worksheet.UsedRange; }
+            catch { continue; }
 
-        // 3. 循环引用检测
-        var circIssues = CircularReferenceDetector.Scan(worksheet, workbook);
+            // 1. 错误值扫描
+            var errorIssues = ErrorValueScanner.Scan(worksheet, usedRange);
+            foreach (var issue in errorIssues) issue.WorksheetName = sheetName;
+            report.ErrorValueCount += errorIssues.Count;
+            report.Issues.AddRange(errorIssues);
+
+            // 2. 外部链接扫描
+            var linkIssues = ExternalLinkScanner.Scan(worksheet, usedRange);
+            foreach (var issue in linkIssues) issue.WorksheetName = sheetName;
+            report.ExternalLinkCount += linkIssues.Count;
+            report.Issues.AddRange(linkIssues);
+
+            // 3. 硬编码值扫描
+            var hcIssues = HardcodedValueScanner.Scan(worksheet, usedRange);
+            foreach (var issue in hcIssues) issue.WorksheetName = sheetName;
+            report.HardcodedCount += hcIssues.Count;
+            report.Issues.AddRange(hcIssues);
+        }
+
+        // 4. 循环引用检测（工作簿级别，仅执行一次）
+        dynamic firstSheet = excelApp.ActiveSheet;
+        var circIssues = CircularReferenceDetector.Scan(firstSheet, workbook);
         report.CircularRefCount = circIssues.Count;
         report.Issues.AddRange(circIssues);
 
-        // 4. 硬编码值扫描
-        var hcIssues = HardcodedValueScanner.Scan(worksheet, usedRange);
-        report.HardcodedCount = hcIssues.Count;
-        report.Issues.AddRange(hcIssues);
-
+        report.WorksheetCount = sheetCount;
         return report;
     }
 }

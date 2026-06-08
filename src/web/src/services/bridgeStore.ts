@@ -5,7 +5,7 @@ import { recordUiAction } from './uiAudit';
 import type { CommandDefinition, HealthResponse, VersionInfoResponse } from '../types/contracts';
 import type { SidecarStatusResponse } from '../types/contracts';
 
-export type PanelId = 'dashboard' | 'commands' | 'sidecar' | 'audit' | 'aiwa' | 'admin' | 'links' | 'ppt' | 'word';
+export type PanelId = 'dashboard' | 'commands' | 'sidecar' | 'audit' | 'aiwa' | 'admin' | 'links' | 'ppt' | 'word' | 'templates' | 'shortcuts' | 'aiConfig' | 'settings';
 
 type BridgeState = {
   backendBaseUrl: string;
@@ -20,6 +20,9 @@ type BridgeState = {
   sidecarConnected: boolean;
   excelInfo?: SidecarStatusResponse;
 
+  // Host detection
+  currentHost: 'excel' | 'powerpoint' | 'word' | '';
+
   // Panel state
   activePanel: PanelId;
 
@@ -29,11 +32,22 @@ type BridgeState = {
   setActivePanel: (panel: PanelId) => void;
 };
 
+function detectOfficeHost(): 'excel' | 'powerpoint' | 'word' | '' {
+  try {
+    const host = (window as any).Office?.context?.host;
+    if (host === (window as any).Office?.HostType?.Excel) return 'excel';
+    if (host === (window as any).Office?.HostType?.PowerPoint) return 'powerpoint';
+    if (host === (window as any).Office?.HostType?.Word) return 'word';
+  } catch { }
+  return '';
+}
+
 export const useBridgeStore = create<BridgeState>((set, get) => ({
   backendBaseUrl: apiClient.getBackendBaseUrl(),
   commands: [],
   isLoading: false,
   sidecarConnected: false,
+  currentHost: detectOfficeHost(),
   activePanel: 'dashboard',
 
   refresh: async () => {

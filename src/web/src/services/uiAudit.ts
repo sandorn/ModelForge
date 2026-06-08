@@ -30,7 +30,18 @@ export type UiAuditAction =
   | 'dictionary.import'
   | 'aiwa.send'
   | 'aiwa.mode.change'
-  | 'aiwa.dictionary.toggle';
+  | 'aiwa.dictionary.toggle'
+  | 'aiwa.backend.toggle'
+  | 'settings.save'
+  | 'admin.user.edit'
+  | 'admin.user.delete'
+  | 'template.insert'
+  | 'template.save'
+  | 'aiwa.test'
+  | 'quick.paste-values'
+  | 'quick.model-check'
+  | 'quick.freeze'
+  | 'quick.heatmap';
 
 export type UiAuditOptions = {
   action: UiAuditAction;

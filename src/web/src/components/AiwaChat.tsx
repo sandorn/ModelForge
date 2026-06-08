@@ -4,7 +4,17 @@ import { apiClient } from '../services/apiClient';
 import { recordUiAction } from '../services/uiAudit';
 import type { DictionaryCheckResponse } from '../types/contracts';
 
-type AiwaMode = 'summarize' | 'elaborate' | 'rephrase' | 'proofread' | 'translate';
+type AiwaMode = 'summarize' | 'elaborate' | 'rephrase' | 'proofread' | 'translate' | 'explain';
+type AiwaBackend = 'mock' | 'ollama';
+
+const BACKEND_MODE_MAP: Record<AiwaMode, string> = {
+  summarize: 'summarize',
+  elaborate: 'expand',
+  rephrase: 'rewrite',
+  proofread: 'proofread',
+  translate: 'translate',
+  explain: 'explain',
+};
 
 interface Message {
   id: string;
@@ -20,6 +30,7 @@ const MODE_LABELS: Record<AiwaMode, string> = {
   rephrase: '改写',
   proofread: '校对',
   translate: '翻译',
+  explain: '公式解释',
 };
 
 export function AiwaChat() {
@@ -33,6 +44,7 @@ export function AiwaChat() {
   const [mode, setMode] = useState<AiwaMode>('summarize');
   const [loading, setLoading] = useState(false);
   const [dictionaryEnabled, setDictionaryEnabled] = useState(true);
+  const [aiwaBackend, setAiwaBackend] = useState<AiwaBackend>('mock');
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,7 +56,7 @@ export function AiwaChat() {
     if (!text) return;
     recordUiAction({
       action: 'aiwa.send',
-      metadata: { mode, length: text.length, dictionaryEnabled },
+      metadata: { mode, length: text.length, dictionaryEnabled, backend: aiwaBackend },
     });
 
     const userMessage: Message = {
@@ -59,9 +71,20 @@ export function AiwaChat() {
     setInput('');
     setLoading(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    const mockResponse = generateMockResponse(text, mode);
-    const response = await applyDictionaryGuardrails(mockResponse, dictionaryEnabled);
+    let rawResponse: string;
+    if (aiwaBackend === 'ollama') {
+      try {
+        const backendMode = BACKEND_MODE_MAP[mode];
+        const result = await apiClient.sendAiwaMessage({ message: text, mode: backendMode });
+        rawResponse = result.response;
+      } catch {
+        rawResponse = generateMockResponse(text, mode);
+      }
+    } else {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      rawResponse = generateMockResponse(text, mode);
+    }
+    const response = await applyDictionaryGuardrails(rawResponse, dictionaryEnabled);
 
     setMessages((prev) => [...prev, {
       id: crypto.randomUUID(),
@@ -83,7 +106,17 @@ export function AiwaChat() {
     <div className="aiwa-container">
       <div className="aiwa-header">
         <Text weight="bold" size={500}>AIWA</Text>
-        <Badge appearance="tint" color="brand">本地 Mock</Badge>
+        <button
+          className={`aiwa-mode-btn${aiwaBackend === 'ollama' ? ' active' : ''}`}
+          style={{ fontSize: '0.75rem', padding: '2px 8px' }}
+          onClick={() => {
+            const next = aiwaBackend === 'mock' ? 'ollama' : 'mock';
+            recordUiAction({ action: 'aiwa.backend.toggle', metadata: { backend: next } });
+            setAiwaBackend(next);
+          }}
+        >
+          {aiwaBackend === 'ollama' ? 'Ollama' : 'Mock'}
+        </button>
         <Badge appearance="tint" color={dictionaryEnabled ? 'success' : 'warning'}>
           Dictionary {dictionaryEnabled ? 'On' : 'Off'}
         </Badge>
@@ -158,6 +191,8 @@ function generateMockResponse(text: string, mode: AiwaMode): string {
       return `🔍 **校对 (Mock)**\n\n对 "${text.substring(0, 50)}..." 的校对结果：\n\n- ✅ 整体结构合理\n- ⚠️ 可能存在的语法问题\n- 💡 用词建议\n\n> ⚠️ 当前为本地 Mock 响应。`;
     case 'translate':
       return `🌐 **翻译 (Mock)**\n\n源文本: "${text.substring(0, 50)}..."\n\nEnglish:\n> Mock translation — LLM API connection required.\n\n> ⚠️ 当前为本地 Mock 响应。`;
+    case 'explain':
+      return `📊 **公式解释 (Mock)**\n\n分析公式: \`${text.substring(0, Math.min(text.length, 80))}\`\n\n**逐步解析:**\n1. 函数识别\n2. 参数分析\n3. 计算逻辑\n4. 优化建议\n\n> ⚠️ 当前为本地 Mock 响应。连接 Ollama 后提供真实 AI 公式解释。`;
     default:
       return '未知模式。请选择总结 / 展开 / 改写 / 校对 / 翻译。';
   }

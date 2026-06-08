@@ -72,6 +72,34 @@ public static class WorkbookOptimizer
         }
         catch { }
 
+        // 2.5 删除未使用的自定义样式
+        try
+        {
+            var builtInStyles = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "Normal", "Comma", "Currency", "Percent", "Note", "Warning Text",
+                "Heading 1", "Heading 2", "Heading 3", "Heading 4",
+                "Title", "Subtitle", "Emphasis", "Strong", "List Bullet",
+                "Good", "Bad", "Neutral", "Calculation", "Check Cell",
+                "Explanatory Text", "Input", "Linked Cell", "Output", "Total"
+            };
+
+            foreach (dynamic style in workbook.Styles)
+            {
+                try
+                {
+                    string name = style.Name ?? "";
+                    if (!builtInStyles.Contains(name) && !name.StartsWith("Followed", StringComparison.OrdinalIgnoreCase))
+                    {
+                        style.Delete();
+                        result.StylesRemoved++;
+                    }
+                }
+                catch { /* Built-in styles cannot be deleted */ }
+            }
+        }
+        catch { }
+
         // 3. 删除外部链接残留
         try
         {

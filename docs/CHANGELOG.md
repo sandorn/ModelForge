@@ -8,6 +8,65 @@
 
 ### 已修复
 
+## 0.2.0 (2026-06-08)
+
+### 新增（26 轮迭代，111 新命令，146 命令总计）
+
+#### Excel（+37 命令）
+- ModelCheck 全工作簿扫描、公式追踪可视化（箭头+高亮）、跨工作表追踪
+- Black-Scholes 期权模板、LBO 模型模板、XIRR/NPV 模板、用户模板管理
+- Quick Chart（柱状图/折线图）、批量图表格式化、添加数据序列
+- 条件格式预设（热力图/数据条/图标集/Top10）
+- 数据验证（下拉列表/数值范围）、AutoSum、Paste Values
+- 公式简化分析、描述性统计、相关性分析
+- 打印区域、冻结窗格、删除重复值、隐藏空白工作表
+- Chart 链接到 PPT、Range 链接到 Word
+
+#### PowerPoint（+45 命令）
+- TurboShapes（Harvey Ball/Progress Bar/Rating Stars）
+- Section 管理、页码管理、Tombstone 交易墓碑
+- 形状旋转/交换位置、层级管理（置顶/置底）
+- Reformat View（按字体/字号搜索和替换）
+- MasterShapes 形状库、Meta Shapes 元数据
+- Logo Library、动画（出现/淡入/飞入）、过渡效果
+- 背景色、版式应用、新建/复制/移动幻灯片
+- 幻灯片导出 PNG
+
+#### Word（+22 命令）
+- 分页符/分节符/TOC/封面页
+- 表格行列插入/SUM 公式
+- 文档大纲导航/跳转、Heading 样式
+- 查找替换、文档统计、页边距/方向
+
+#### Backend（+7 API）
+- Dashboard 统计（Top 命令/宿主分布/趋势图）
+- AIWA Chat（Ollama/OpenAI-compatible/Mock 三 Provider）
+- 企业策略配置、品牌模板、合同条款库
+- 用户组管理、自定义 RBAC 角色 CRUD
+- 审计完整性验证、版本管理
+- Admin 用户编辑/删除 API
+
+#### Web（+13 面板）
+- Dashboard 统计面板（趋势条形图+活跃功能排行+快捷操作）
+- AI 配置面板、快捷键参考面板、模板浏览器
+- Admin Console 用户编辑/删除 UI
+- React.lazy 代码分割（主包 492→401KB）
+- Omnibar Office 原生命令 + 搜索历史 + 宿主检测
+- 命令面板宿主过滤（Excel/PPT/Word/All）
+
+#### 基础设施
+- Serilog 文件日志（Console + File 双输出）
+- 用户 DB Schema（EF Core UserEntry + SqliteUserStore）
+- Office.js 宿主自动检测
+
+### 变更
+- 版本号：0.1.3 → 0.2.0
+- 快捷键：88 个命令有快捷键（A-Z + Shift 全部占用）
+- 测试：325 → 337（+12 企业 API 测试）
+
+### 验证
+- Backend 72/72 · Sidecar 170/170 · Web 95/95 全部通过
+
 ## 0.1.3 (2026-06-07)
 
 ### 新增
@@ -93,10 +152,10 @@
 - `docs/API契约.md`: 新增 Sidecar REST API 章节 (4 端点)
 - `docs/安全自查清单.md`: 新增内测/试点发布安全门禁清单
 - `docs/Office-Add-in-企业分发指南.md`: 新增 Microsoft 365 集中部署、网络共享测试和回滚流程
-- `docs/发布说明-0.1.3.md`: 新增试点候选版发布说明、验证结果、已知限制和回滚步骤
+- `docs/发布说明-0.2.0.md`: 发布说明、验证结果、已知限制和回滚步骤
 - `docs/用户指南.md` / `docs/管理员指南.md`: 同步链接刷新、Corporate Dictionary CSV/XLSX 模板和发布验证说明
 - `scripts/generate-samples.ps1`: 样例文件自动生成脚本
-- 当前版本提升至 `0.1.3` / MSI `0.1.3.0`
+- 当前版本提升至 `0.2.0` / MSI `0.2.0.0`
 
 ### 变更
 

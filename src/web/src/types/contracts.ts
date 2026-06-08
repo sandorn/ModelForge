@@ -364,6 +364,45 @@ export type LinkRefreshResponse = {
   requestedAtUtc: string;
 };
 
+// ── Dashboard ──
+export type DashboardTopCommand = {
+  commandId: string;
+  count: number;
+};
+
+export type DashboardHostBucket = {
+  host: string;
+  count: number;
+};
+
+export type DashboardTimelineBucket = {
+  label: string;
+  count: number;
+};
+
+export type DashboardSummaryResponse = {
+  generatedAtUtc: string;
+  windowHours: number;
+  totalEvents: number;
+  activeUserCount: number;
+  topCommands: DashboardTopCommand[];
+  byHost: DashboardHostBucket[];
+  timeline: DashboardTimelineBucket[];
+};
+
+// ── AIWA Chat ──
+export type AiwaChatRequest = {
+  message: string;
+  mode: string;
+};
+
+export type AiwaChatResponse = {
+  response: string;
+  mode: string;
+  model: string;
+  fallbackMock: boolean;
+};
+
 // ── Enums (must match C# numeric values) ──
 export enum OfficeHost {
   Unknown = 0,

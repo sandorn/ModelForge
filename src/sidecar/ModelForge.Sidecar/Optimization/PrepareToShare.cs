@@ -15,6 +15,8 @@ public static class PrepareToShare
         public int HiddenColumnsRemoved { get; set; }
         public int ExternalLinksBroken { get; set; }
         public int VeryHiddenSheetsRemoved { get; set; }
+        public int ValuesMasked { get; set; }
+        public int TextsMasked { get; set; }
         public List<string> Actions { get; } = new();
     }
 
@@ -23,10 +25,11 @@ public static class PrepareToShare
     /// </summary>
     /// <param name="excelApp">Excel Application</param>
     /// <param name="outputPath">副本保存路径。若为空，默认在源文件同目录生成 "_SafeCopy.xlsx"。</param>
-    public static PrepareResult Execute(dynamic excelApp, string? outputPath = null)
+    public static PrepareResult Execute(dynamic excelApp, string? outputPath = null, bool maskData = false)
     {
         var result = new PrepareResult();
         dynamic workbook = excelApp.ActiveWorkbook;
+        var rng = new Random();
 
         // 计算默认输出路径
         if (string.IsNullOrWhiteSpace(outputPath))
@@ -60,6 +63,42 @@ public static class PrepareToShare
                         {
                             cell.Value = cell.Value; // 公式转值
                             result.FormulasConverted++;
+                        }
+                    }
+
+                    // 数据脱敏
+                    if (maskData)
+                    {
+                        foreach (dynamic cell in usedRange)
+                        {
+                            try
+                            {
+                                object? val = cell.Value;
+                                if (val == null) continue;
+
+                                if (val is double)
+                                {
+                                    double d = (double)val;
+                                    if (cell.HasFormula) continue;
+                                    // 数值混淆：保留数量级，替换为随机值
+                                    double magnitude = Math.Abs(d);
+                                    if (magnitude < 1e-10) magnitude = 1;
+                                    double masked = Math.Round((rng.NextDouble() * 2 - 1) * magnitude, 2);
+                                    cell.Value = masked;
+                                    result.ValuesMasked++;
+                                }
+                                else if (val is string)
+                                {
+                                    string s = (string)val;
+                                    if (cell.HasFormula || s.Length == 0) continue;
+                                    // 文本脱敏：替换为占位符
+                                    cell.Value = s.Length <= 5 ? "[---]" :
+                                                 s.Length <= 20 ? "[REDACTED]" :
+                                                 "[CONTENT REDACTED]";
+                                    result.TextsMasked++;
+                                }
+                            }
+                            catch { /* 受保护单元格 */ }
                         }
                     }
 
@@ -177,6 +216,11 @@ public static class PrepareToShare
             result.Actions.Add($"已删除 {result.HiddenRowsRemoved} 个隐藏行");
             result.Actions.Add($"已删除 {result.HiddenColumnsRemoved} 个隐藏列");
             result.Actions.Add($"已断裂 {result.ExternalLinksBroken} 个外部链接");
+            if (maskData)
+            {
+                result.Actions.Add($"已脱敏 {result.ValuesMasked} 个数值");
+                result.Actions.Add($"已脱敏 {result.TextsMasked} 个文本");
+            }
             result.Actions.Add($"已删除 {sheetsToDelete.Count} 个隐藏工作表（含 {result.VeryHiddenSheetsRemoved} 个深度隐藏）");
         }
         finally

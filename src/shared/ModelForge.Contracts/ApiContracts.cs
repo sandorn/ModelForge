@@ -35,7 +35,7 @@ namespace ModelForge.Contracts
     {
         public string Product { get; set; } = "ModelForge";
         public string Component { get; set; } = "Backend API";
-        public string Version { get; set; } = "0.1.3";
+        public string Version { get; set; } = "0.2.0";
         public string ApiVersion { get; set; } = "v1";
         public DateTimeOffset BuildTimestampUtc { get; set; } = DateTimeOffset.UtcNow;
     }
@@ -66,6 +66,12 @@ namespace ModelForge.Contracts
         public string Role { get; set; } = "Analyst";
     }
 
+    public sealed class AdminUserUpdateRequest
+    {
+        public string? Password { get; set; }
+        public string? Role { get; set; }
+    }
+
     public sealed class AdminUserResponse
     {
         public string Id { get; set; } = string.Empty;
@@ -86,6 +92,12 @@ namespace ModelForge.Contracts
         public string Role { get; set; } = string.Empty;
         public IReadOnlyCollection<string> Permissions { get; set; } = Array.Empty<string>();
         public bool BuiltIn { get; set; } = true;
+    }
+
+    public sealed class AdminRoleCreateRequest
+    {
+        public string Role { get; set; } = string.Empty;
+        public string[] Permissions { get; set; } = [];
     }
 
     public sealed class AdminRolesResponse
@@ -497,5 +509,56 @@ namespace ModelForge.Contracts
         Warning = 2,
         Error = 3,
         Critical = 4
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Dashboard
+    // ═══════════════════════════════════════════════════════════════
+
+    public sealed class DashboardSummaryResponse
+    {
+        public DateTimeOffset GeneratedAtUtc { get; set; } = DateTimeOffset.UtcNow;
+        public int WindowHours { get; set; }
+        public int TotalEvents { get; set; }
+        public int ActiveUserCount { get; set; }
+        public List<DashboardTopCommand> TopCommands { get; set; } = [];
+        public List<DashboardHostBucket> ByHost { get; set; } = [];
+        public List<DashboardTimelineBucket> Timeline { get; set; } = [];
+    }
+
+    public sealed class DashboardTopCommand
+    {
+        public string CommandId { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
+
+    public sealed class DashboardHostBucket
+    {
+        public string Host { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
+
+    public sealed class DashboardTimelineBucket
+    {
+        public string Label { get; set; } = string.Empty;
+        public int Count { get; set; }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  AIWA Chat
+    // ═══════════════════════════════════════════════════════════════
+
+    public sealed class AiwaChatRequest
+    {
+        public string Message { get; set; } = string.Empty;
+        public string Mode { get; set; } = "chat"; // summarize | expand | rewrite | proofread | translate | chat
+    }
+
+    public sealed class AiwaChatResponse
+    {
+        public string Response { get; set; } = string.Empty;
+        public string Mode { get; set; } = string.Empty;
+        public string Model { get; set; } = string.Empty;
+        public bool FallbackMock { get; set; }
     }
 }

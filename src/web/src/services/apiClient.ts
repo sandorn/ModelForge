@@ -1,4 +1,6 @@
 ﻿import type {
+  AiwaChatRequest,
+  AiwaChatResponse,
   ApiEnvelope,
   AdminDiagnosticsResponse,
   AdminAuditRetentionRequest,
@@ -16,6 +18,7 @@
   ConfigurationResponse,
   ConfigurationUpsertRequest,
   CreateLinkMetadataRequest,
+  DashboardSummaryResponse,
   DictionaryCheckRequest,
   DictionaryCheckResponse,
   DictionaryExportResponse,
@@ -65,6 +68,11 @@ export class ApiClient {
     return this.get<VersionInfoResponse>('/api/version');
   }
 
+  async getDashboardSummary(hours?: number) {
+    const path = hours != null ? `/api/dashboard/summary?hours=${hours}` : '/api/dashboard/summary';
+    return this.get<DashboardSummaryResponse>(path);
+  }
+
   // ═══════════════════════════════════════════════════════
   //  Commands
   // ═══════════════════════════════════════════════════════
@@ -111,6 +119,14 @@ export class ApiClient {
 
   async toggleAdminUser(userId: string) {
     return this.put<AdminUserToggleResponse>(`/api/admin/users/${encodeURIComponent(userId)}/toggle`, {});
+  }
+
+  async updateAdminUser(userId: string, req: { password?: string; role?: string }) {
+    return this.put<AdminUserResponse>(`/api/admin/users/${encodeURIComponent(userId)}`, req);
+  }
+
+  async deleteAdminUser(userId: string) {
+    return this.delete<{ deleted: string }>(`/api/admin/users/${encodeURIComponent(userId)}`);
   }
 
   async getAdminRoles() {
@@ -195,6 +211,18 @@ export class ApiClient {
 
   async refreshLink(linkId: string, req: LinkRefreshRequest) {
     return this.post<LinkRefreshResponse>(`/api/links/${linkId}/refresh`, req);
+  }
+
+  // ═══════════════════════════════════════════════════════
+  //  AIWA Chat
+  // ═══════════════════════════════════════════════════════
+
+  async getAiwaConfig() {
+    return this.get<{ provider: string; model: string; modes: string[] }>('/api/aiwa/config');
+  }
+
+  async sendAiwaMessage(req: AiwaChatRequest) {
+    return this.post<AiwaChatResponse>('/api/aiwa/chat', req);
   }
 
   // ═══════════════════════════════════════════════════════
